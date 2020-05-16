@@ -66,7 +66,7 @@ function createProxy(options){
       if (defOptions.https.enabled == true) {
         Https.createServer({
           key: FileSystem.readFileSync(defOptions.https.sslkey),
-          cert: FileSystem.readFileSync(defOptions.https.sslkey),
+          cert: FileSystem.readFileSync(defOptions.https.sslcert),
           ca: FileSystem.readFileSync(defOptions.https.sslchain)
         }, this.appssl).listen(defOptions.https.port, defOptions.https.start_callback);
       }
