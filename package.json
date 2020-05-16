@@ -1,0 +1,32 @@
+{
+  "name": "magic-proxy",
+  "version": "0.0.1",
+  "description": "A web proxy based with some smart features like SNI, HSTS and Round-Robin balancer algorithm.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MurylloEx/Magic-Proxy.git"
+  },
+  "keywords": [
+    "proxy",
+    "web",
+    "round",
+    "robin",
+    "server"
+  ],
+  "author": "Muryllo Pimenta de Oliveira",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/MurylloEx/Magic-Proxy/issues"
+  },
+  "homepage": "https://github.com/MurylloEx/Magic-Proxy#readme",
+  "dependencies": {
+    "express": "^4.17.1",
+    "express-force-https": "^1.0.0",
+    "http-proxy": "^1.18.0",
+    "wildcard": "^2.0.0"
+  }
+}
