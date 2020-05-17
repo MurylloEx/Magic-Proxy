@@ -1,6 +1,6 @@
 {
   "name": "magic-reverse-proxy",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "A web proxy based with some smart features like SNI, HSTS and Round-Robin balancer algorithm.",
   "main": "index.js",
   "scripts": {
@@ -25,7 +25,6 @@
   "homepage": "https://github.com/MurylloEx/Magic-Proxy#readme",
   "dependencies": {
     "express": "^4.17.1",
-    "express-force-https": "^1.0.0",
     "http-proxy": "^1.18.0",
     "wildcard": "^2.0.0"
   }

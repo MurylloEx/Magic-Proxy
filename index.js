@@ -1,5 +1,4 @@
 const ProxyServer = require('./libs/proxysrv');
-const ForceHttps = require('express-force-https');
 const Express = require('express');
 const Https = require('https');
 const FileSystem = require('fs');
@@ -77,7 +76,16 @@ function createProxy(options){
         this.appssl.use(middleware);
       });
       if (defOptions.enable_hsts == true){
-        this.app.use(ForceHttps);
+        //ALL COPYRIGHT OF EXPRESS-FORCE-HTTPS PACKAGE.
+        //THIS METHOD WAS IMPROVED BECAUSE IT'S ORIGINALLY VULNERABLE.
+        this.app.use(function(req,res,next) {
+          let schema = (req.headers['x-forwarded-proto'] || '').toLowerCase();
+          if (String(req.headers.host).indexOf('localhost')<0 && schema!=='https') {
+            res.redirect('https://' + String(req.headers.host) + String(req.url));
+          } else {
+            next();
+          }
+        });
         this.appssl.use(ProxyServer(defOptions));
       }
       else{
