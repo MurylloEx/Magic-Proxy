@@ -1,7 +1,7 @@
 const Wildcard = require('wildcard');
 const HttpProxy = require('http-proxy');
 
-const ProxyAPI = HttpProxy.createProxyServer({ xfwd: false, followRedirects: true, preserveHeaderKeyCase: true });
+const ProxyAPI = HttpProxy.createProxyServer({ xfwd: false, preserveHeaderKeyCase: true });
 
 function BadGateway(res){
   if (!res.badgateway){

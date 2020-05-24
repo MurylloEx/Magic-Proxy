@@ -1,6 +1,6 @@
 {
   "name": "magic-reverse-proxy",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "A web proxy based with some smart features like SNI, HSTS and Round-Robin balancer algorithm.",
   "main": "index.js",
   "scripts": {
