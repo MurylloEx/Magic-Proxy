@@ -29,19 +29,22 @@ const stdcfg = {
   }
 };
 
+function is_set(val){
+  return !((typeof val == 'undefined') || (val === null));
+}
+
 /**Generate default options for the input specified.
  * 
  * @param {stdcfg} options Options of proxy.
  */
 function default_options(options) {
-  let opts = options || stdcfg;
-  opts.enable_hsts = opts.enable_hsts || false;
-  opts.allow_unknown_host = opts.allow_unknown_host || true;
-  opts.hsts = opts.hsts || false;
-  opts.http = opts.http || stdcfg.http;
-  opts.https = opts.https || stdcfg.https;
-  opts.proxies = opts.proxies || [];
-  opts.default_proxy = opts.default_proxy || stdcfg.default_proxy;
+  let opts                = options || stdcfg;
+  opts.enable_hsts        = !is_set(opts.enable_hsts) ? false : opts.enable_hsts;
+  opts.allow_unknown_host = !is_set(opts.allow_unknown_host) ? true : opts.allow_unknown_host;
+  opts.http               = opts.http || stdcfg.http;
+  opts.https              = opts.https || stdcfg.https;
+  opts.proxies            = opts.proxies || [];
+  opts.default_proxy      = opts.default_proxy || stdcfg.default_proxy;
   return opts;
 }
 
