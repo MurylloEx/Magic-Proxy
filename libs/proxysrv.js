@@ -17,7 +17,7 @@ module.exports = function (defOptions) {
     defOptions.proxies.forEach((proxyObj, idx, proxies) => {
       if (Wildcard(String(proxyObj.domain).toUpperCase(), String(req.hostname).toUpperCase()) && !proxied) {
         ProxyAPI.web(req, res, { target: proxyObj.destination[proxyObj.round], timeout: proxyObj.timeout }, (e) => {
-          BadGateway(res);
+          return BadGateway(res);
         });
         defOptions.proxies[idx].round = (defOptions.proxies[idx].round + 1) % defOptions.proxies[idx].destination.length;
         proxied = true;
@@ -25,9 +25,13 @@ module.exports = function (defOptions) {
     });
     if (!proxied && (defOptions.allow_unknown_host == true)) {
       ProxyAPI.web(req, res, { target: defOptions.default_proxy.destination[defOptions.default_proxy.round], timeout: defOptions.default_proxy.timeout }, (e) => {
-        BadGateway(res);
+        return BadGateway(res);
       });
       defOptions.default_proxy.round = (defOptions.default_proxy.round + 1) % defOptions.default_proxy.destination.length;
+    } else {
+      try {
+        return res.connection.destroy();
+      } catch(e) {}
     }
   }
 }

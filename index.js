@@ -2,12 +2,13 @@ const ProxyServer = require('./libs/proxysrv');
 const Express = require('express');
 const Https = require('https');
 const FileSystem = require('fs');
+const Wildcard = require('wildcard');
 
 const stdcfg = {
   enable_hsts: false,
   allow_unknown_host: true,
   http: {
-    port: 55100,
+    port: 80,
     enabled: true,
     start_callback: function(){},
     middlewares: []
@@ -79,6 +80,22 @@ function createProxy(options){
         this.appssl.use(middleware);
       });
       if (defOptions.enable_hsts == true){
+        this.app.use(function(req,res,next) {
+          let is_known_host = false;
+          defOptions.proxies.forEach((proxyObj, idx, proxies) => {
+            if (Wildcard(String(proxyObj.domain).toUpperCase(), String(req.hostname).toUpperCase())) {
+              is_known_host = true;
+              return void(0);
+            }
+          });
+          if (!is_known_host){
+            try{
+              return res.connection.destroy();
+            } catch(e){}
+          } else {
+            return next();
+          }
+        });
         //ALL COPYRIGHT OF EXPRESS-FORCE-HTTPS PACKAGE.
         //THIS METHOD WAS IMPROVED BECAUSE IT'S ORIGINALLY VULNERABLE.
         this.app.use(function(req,res,next) {
@@ -92,6 +109,22 @@ function createProxy(options){
         this.appssl.use(ProxyServer(defOptions));
       }
       else{
+        this.app.use(function(req,res,next) {
+          let is_known_host = false;
+          defOptions.proxies.forEach((proxyObj, idx, proxies) => {
+            if (Wildcard(String(proxyObj.domain).toUpperCase(), String(req.hostname).toUpperCase())) {
+              is_known_host = true;
+              return void(0);
+            }
+          });
+          if (!is_known_host){
+            try{
+              return res.connection.destroy();
+            } catch(e){}
+          } else {
+            return next();
+          }
+        });
         this.app.use(ProxyServer(defOptions));
       }
     }

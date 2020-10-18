@@ -1,7 +1,7 @@
 {
   "name": "magic-reverse-proxy",
-  "version": "0.0.4",
-  "description": "A web proxy based with some smart features like SNI, HSTS and Round-Robin balancer algorithm.",
+  "version": "0.0.5",
+  "description": "A web proxy based with some smart features like VHOSTS, HSTS and Round-Robin balancer algorithm.",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
