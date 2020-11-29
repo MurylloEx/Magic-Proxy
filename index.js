@@ -1,12 +1,15 @@
-const ProxyServer = require('./libs/proxysrv');
-const Express = require('express');
 const Https = require('https');
 const FileSystem = require('fs');
-const Wildcard = require('wildcard');
+const Express = require('express');
+const BlockUnknownHosts = require('./libs/blockunknownhosts');
+const HttpProxyServer = require('./libs/httpproxysrv');
+const HstsSecurityPolicy = require('./libs/hstssecpolicy');
+const WebSocketsProxyServer = require('./libs/wsockproxysrv');
 
 const stdcfg = {
   enable_hsts: false,
   allow_unknown_host: true,
+  allow_websockets: false,
   http: {
     port: 80,
     enabled: true,
@@ -25,6 +28,7 @@ const stdcfg = {
   proxies: [],
   default_proxy: {
     destination: [],
+    sockDestination: [],
     timeout: 10000,
     round: 0
   }
@@ -42,6 +46,7 @@ function default_options(options) {
   let opts                = options || stdcfg;
   opts.enable_hsts        = !is_set(opts.enable_hsts) ? false : opts.enable_hsts;
   opts.allow_unknown_host = !is_set(opts.allow_unknown_host) ? true : opts.allow_unknown_host;
+  opts.allow_websockets   = !is_set(opts.allow_websockets) ? false : opts.allow_websockets;
   opts.http               = opts.http || stdcfg.http;
   opts.https              = opts.https || stdcfg.https;
   opts.proxies            = opts.proxies || [];
@@ -59,18 +64,20 @@ function createProxy(options){
     app: Express(),
     appssl: Express(),
     config: defOptions,
+    httpserver: null,
+    httpsserver: null,
     /**Bind the proxy on local port spcified in options of createProxy() function.
      * @returns {void} 
      */
     bind: function(){
       if (defOptions.http.enabled == true) {
-        this.app.listen(defOptions.http.port, defOptions.http.start_callback);
+        this.httpserver = this.app.listen(defOptions.http.port, defOptions.http.start_callback);
       }
       if (defOptions.https.enabled == true) {
-        Https.createServer({
-          key: FileSystem.readFileSync(defOptions.https.sslkey),
+        this.httpsserver = Https.createServer({
+          key:  FileSystem.readFileSync(defOptions.https.sslkey),
           cert: FileSystem.readFileSync(defOptions.https.sslcert),
-          ca: FileSystem.readFileSync(defOptions.https.sslchain)
+          ca:   FileSystem.readFileSync(defOptions.https.sslchain)
         }, this.appssl).listen(defOptions.https.port, defOptions.https.start_callback);
       }
       defOptions.http.middlewares.forEach((middleware, idx, arr) => {
@@ -79,57 +86,24 @@ function createProxy(options){
       defOptions.https.middlewares.forEach((middleware, idx, arr) => {
         this.appssl.use(middleware);
       });
-      if (defOptions.enable_hsts == true){
-        this.app.use(function(req,res,next) {
-          let is_known_host = false;
-          defOptions.proxies.forEach((proxyObj, idx, proxies) => {
-            if (Wildcard(String(proxyObj.domain).toUpperCase(), String(req.hostname).toUpperCase())) {
-              is_known_host = true;
-              return void(0);
-            }
-          });
-          if (!is_known_host){
-            try{
-              return res.connection.destroy();
-            } catch(e){}
-          } else {
-            return next();
-          }
-        });
-        //ALL COPYRIGHT OF EXPRESS-FORCE-HTTPS PACKAGE.
-        //THIS METHOD WAS IMPROVED BECAUSE IT'S ORIGINALLY VULNERABLE.
-        this.app.use(function(req,res,next) {
-          let schema = (req.headers['x-forwarded-proto'] || '').toLowerCase();
-          if (String(req.headers.host).indexOf('localhost')<0 && schema!=='https') {
-            res.redirect('https://' + String(req.headers.host) + String(req.url));
-          } else {
-            next();
-          }
-        });
-        this.appssl.use(ProxyServer(defOptions));
+      if (defOptions.http.enabled == true){
+        this.app.use(BlockUnknownHosts(defOptions));
+        if (defOptions.enable_hsts == true){
+          this.app.use(HstsSecurityPolicy);
+        }
+        this.app.use(HttpProxyServer(defOptions));
+        this.httpserver.on('upgrade', WebSocketsProxyServer(defOptions));
       }
-      else{
-        this.app.use(function(req,res,next) {
-          let is_known_host = false;
-          defOptions.proxies.forEach((proxyObj, idx, proxies) => {
-            if (Wildcard(String(proxyObj.domain).toUpperCase(), String(req.hostname).toUpperCase())) {
-              is_known_host = true;
-              return void(0);
-            }
-          });
-          if (!is_known_host){
-            try{
-              return res.connection.destroy();
-            } catch(e){}
-          } else {
-            return next();
-          }
-        });
-        this.app.use(ProxyServer(defOptions));
+      if (defOptions.https.enabled == true){
+        this.appssl.use(BlockUnknownHosts(defOptions));
+        this.appssl.use(HttpProxyServer(defOptions));
+        this.httpsserver.on('upgrade', WebSocketsProxyServer(defOptions));
       }
     }
   }
   return proxy;
 }
+
+
 
 module.exports = createProxy;
