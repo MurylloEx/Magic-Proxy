@@ -28,10 +28,6 @@ module.exports = function (defOptions) {
         return BadGateway(res);
       });
       defOptions.default_proxy.round = (defOptions.default_proxy.round + 1) % defOptions.default_proxy.destination.length;
-    } else {
-      try {
-        return res.connection.destroy();
-      } catch(e) {}
     }
   }
 }
