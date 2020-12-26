@@ -2,7 +2,7 @@ module.exports = function(req) {
   var host = req.headers['X-Forwarded-Host'];
 
   if (!host) {
-    host = this.headers['Host'];
+    host = req.headers['Host'];
   } else if (host.indexOf(',') !== -1) {
     // Note: X-Forwarded-Host is normally only ever a
     //       single value, but this is to be safe.
