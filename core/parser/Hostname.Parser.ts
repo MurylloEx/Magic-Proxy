@@ -1,8 +1,10 @@
-module.exports = function(req) {
-  var host = req.headers['X-Forwarded-Host'];
+import { Request } from 'express';
+
+export function Parse(req: Request) {
+  let host = req.headers['x-forwarded-host']?.toString();
 
   if (!host) {
-    host = req.headers['Host'];
+    host = req.headers['host'];
   } else if (host.indexOf(',') !== -1) {
     // Note: X-Forwarded-Host is normally only ever a
     //       single value, but this is to be safe.
@@ -12,10 +14,10 @@ module.exports = function(req) {
   if (!host) return;
 
   // IPv6 literal support
-  var offset = host[0] === '['
+  let offset = host[0] === '['
     ? host.indexOf(']') + 1
     : 0;
-  var index = host.indexOf(':', offset);
+  let index = host.indexOf(':', offset);
 
   return index !== -1
     ? host.substring(0, index)
