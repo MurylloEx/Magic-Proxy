@@ -14,18 +14,17 @@ import { BlockUnknownHostsMiddleware } from './core/policy/BlockUnknownHosts.Pol
 export interface MagicHttpConfig {
   port: number,
   enabled: boolean,
-  middlewares: Array<(...args: any) => any>
-  start_callback: () => void
+  middlewares?: Array<(...args: any) => any>
+  start_callback?: () => void
 }
 
 export interface MagicHttpsConfig {
   port: number,
   enabled: boolean,
-  middlewares: Array<(...args: any) => any>,
-  start_callback: () => void,
+  middlewares?: Array<(...args: any) => any>,
+  start_callback?: () => void,
   sslkey: string,
-  sslcert: string,
-  sslchain: string
+  sslcert: string
 }
 
 export interface MagicDefaultProxy {
@@ -51,7 +50,8 @@ export interface ProxyTrigger {
   config: ProxyConfig,
   httpServer?: HttpServer,
   httpsServer?: HttpsServer,
-  bind: () => void
+  bind: () => void,
+  unbind: () => void
 }
 
 const standardConfig: ProxyConfig = {
@@ -70,8 +70,7 @@ const standardConfig: ProxyConfig = {
     middlewares: [],
     start_callback: () => {},
     sslkey: '',
-    sslcert: '',
-    sslchain: ''
+    sslcert: ''
   },
   proxies: [],
   default_proxy: {
@@ -120,22 +119,21 @@ export function createProxy(options?: ProxyConfig) {
      * 
      * @returns {void} 
      */
-    bind: function () {
+    bind: function (): void {
       if (defaultOptions.http.enabled) {
         this.httpServer = this.app.listen(defaultOptions.http.port, defaultOptions.http.start_callback);
       }
       if (defaultOptions.https.enabled) {
         this.httpsServer = Https.createServer({
           key: FileSystem.readFileSync(defaultOptions.https.sslkey),
-          cert: FileSystem.readFileSync(defaultOptions.https.sslcert),
-          ca: FileSystem.readFileSync(defaultOptions.https.sslchain)
+          cert: FileSystem.readFileSync(defaultOptions.https.sslcert)
         }, this.appssl).listen(defaultOptions.https.port, defaultOptions.https.start_callback);
       }
 
-      defaultOptions.http.middlewares.forEach((middleware) => {
+      defaultOptions.http.middlewares?.forEach((middleware) => {
         this.app.use(middleware);
       });
-      defaultOptions.https.middlewares.forEach((middleware) => {
+      defaultOptions.https.middlewares?.forEach((middleware) => {
         this.appssl.use(middleware);
       });
 
@@ -152,6 +150,18 @@ export function createProxy(options?: ProxyConfig) {
         this.appssl.use(HttpProxyMiddleware(defaultOptions));
         this.httpsServer?.on('upgrade', WebSocketProxyMiddleware(defaultOptions));
       }
+    },
+
+    /**
+     * Unbind the proxy on local port specified in options of createProxy() function.
+     * 
+     * @returns {void} 
+     */
+    unbind: function(): void{
+      if (defaultOptions.http.enabled)
+        this.httpServer?.close();
+      if (defaultOptions.https.enabled)
+        this.httpsServer?.close();
     }
   }
   return proxy;
