@@ -1,5 +1,4 @@
 import Https from 'https';
-import FileSystem from 'fs';
 import Express, { Express as ExpressInterface } from 'express';
 
 import { Server as HttpServer } from 'http';
@@ -125,8 +124,8 @@ export function createProxy(options?: ProxyConfig) {
       }
       if (defaultOptions.https.enabled) {
         this.httpsServer = Https.createServer({
-          key: FileSystem.readFileSync(defaultOptions.https.sslkey),
-          cert: FileSystem.readFileSync(defaultOptions.https.sslcert)
+          key: defaultOptions.https.sslkey,
+          cert: defaultOptions.https.sslcert
         }, this.appssl).listen(defaultOptions.https.port, defaultOptions.https.start_callback);
       }
 
