@@ -35,9 +35,9 @@ export interface MagicDefaultProxy {
 }
 
 export interface ProxyConfig {
-  enable_hsts: false,
-  allow_unknown_host: true,
-  allow_websockets: false,
+  enable_hsts: boolean,
+  allow_unknown_host: boolean,
+  allow_websockets: boolean,
   http: MagicHttpConfig,
   https: MagicHttpsConfig,
   proxies: Array<string>,
