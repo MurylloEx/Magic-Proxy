@@ -26,7 +26,7 @@ export interface MagicHttpsConfig {
   sslcert: string
 }
 
-export interface MagicDefaultProxy {
+export interface MagicProxyDefinition {
   destination: Array<string>,
   sockDestination: Array<string>,
   timeout: number,
@@ -39,8 +39,8 @@ export interface ProxyConfig {
   allow_websockets: boolean,
   http: MagicHttpConfig,
   https: MagicHttpsConfig,
-  proxies: Array<string>,
-  default_proxy: MagicDefaultProxy
+  proxies: Array<MagicProxyDefinition>,
+  default_proxy: MagicProxyDefinition
 }
 
 export interface ProxyTrigger {
