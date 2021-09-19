@@ -137,7 +137,8 @@ export function createProxy(options?: ProxyConfig) {
       });
 
       if (defaultOptions.http.enabled) {
-        this.app.use(BlockUnknownHostsMiddleware(defaultOptions));
+        if (!defaultOptions.allow_unknown_host)
+          this.app.use(BlockUnknownHostsMiddleware(defaultOptions));
         if (defaultOptions.enable_hsts) {
           this.app.use(HstsSecurityMiddleware);
         }
@@ -145,7 +146,8 @@ export function createProxy(options?: ProxyConfig) {
         this.httpServer?.on('upgrade', WebSocketProxyMiddleware(defaultOptions));
       }
       if (defaultOptions.https.enabled) {
-        this.appssl.use(BlockUnknownHostsMiddleware(defaultOptions));
+        if (!defaultOptions.allow_unknown_host)
+          this.appssl.use(BlockUnknownHostsMiddleware(defaultOptions));
         this.appssl.use(HttpProxyMiddleware(defaultOptions));
         this.httpsServer?.on('upgrade', WebSocketProxyMiddleware(defaultOptions));
       }
