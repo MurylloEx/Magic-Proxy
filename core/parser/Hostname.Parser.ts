@@ -1,6 +1,6 @@
-import { Request } from 'express';
+import { IncomingMessage } from 'http';
 
-export function Parse(req: Request) {
+export function Parse(req: IncomingMessage) {
   let host = req.headers['x-forwarded-host']?.toString();
 
   if (!host) {

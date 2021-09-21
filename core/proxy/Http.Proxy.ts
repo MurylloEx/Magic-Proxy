@@ -1,9 +1,9 @@
+const Wildcard = require('wildcard');
 import { Request, Response } from 'express';
 import { createProxyServer } from 'http-proxy';
 import { Parse } from '../parser/Hostname.Parser';
-const Wildcard = require('wildcard');
 
-const ProxyAPI = createProxyServer({ xfwd: false, preserveHeaderKeyCase: true });
+const ProxyAPI = createProxyServer({ xfwd: false, preserveHeaderKeyCase: true, changeOrigin: true });
 
 function BadGateway(res: Response){
   res.set('Content-Type', 'text/html')

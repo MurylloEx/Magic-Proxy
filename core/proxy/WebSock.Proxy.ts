@@ -1,13 +1,13 @@
 const Wildcard = require('wildcard');
 
-import { Request, Response } from 'express';
+import { IncomingMessage } from 'http';
 import { createProxyServer } from 'http-proxy';
 import { Parse } from "../parser/Hostname.Parser";
 
-const ProxyAPI = createProxyServer({ xfwd: false, preserveHeaderKeyCase: true });
+const ProxyAPI = createProxyServer({ xfwd: false, preserveHeaderKeyCase: true, changeOrigin: true });
 
 export function WebSocketProxyMiddleware(options: any) {
-  return (req: Request, socket: Response, head: any) => {
+  return (req: IncomingMessage, socket: any, head: any) => {
     let proxied = false;
     if (options.allow_websockets == true){
       options.proxies.forEach((proxy: any, idx: number) => {

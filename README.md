@@ -25,16 +25,19 @@ npm install magic-reverse-proxy --save
 
 ## How it works?
 
-```javascript
+In this basic sample our main goal is to forward all websocket traffic from port 8080 to port 1234.
 
-const http = require('http');
-const WebSockets = require('websocket');
-const magicproxy = require('magic-reverse-proxy');
+### Creating a basic WebSocket server:
+
+```typescript
+
+import http from 'http';
+import WebSockets from 'websocket';
+import { createProxy } from 'magic-reverse-proxy';
 
 const server = http.createServer((req, res) => {
   //Reject useless requests...
-  res.writeHead(403);
-  res.end();
+  res.writeHead(403).end();
 });
 
 server.listen(1234, function () {
@@ -56,8 +59,12 @@ WebSockServer.on('request', (request) => {
   })
 });
 
+```
 
-let proxy = magicproxy({
+### Creating the Magic Proxy trigger and binding to specific port:
+
+```typescript
+let proxy = createProxy({
   allow_unknown_host: false, //Drop connections from unknown hosts
   allow_websockets: true, //Allow websocket to be proxied as well
   http: {
@@ -86,5 +93,4 @@ let proxy = magicproxy({
 
 //Bind proxy with specified configurations
 proxy.bind();
-
 ```

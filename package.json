@@ -1,6 +1,6 @@
 {
   "name": "magic-reverse-proxy",
-  "version": "2.3.24",
+  "version": "2.3.25",
   "description": "A web proxy based with some smart features like VHOSTS, HSTS, websockets support and Round-Robin balancer algorithm.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

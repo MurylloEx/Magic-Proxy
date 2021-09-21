@@ -7,6 +7,6 @@ export function HstsSecurityMiddleware(req: Request, res: Response, next: NextFu
   if ((String(req.headers.host).indexOf('localhost') < 0) && (schema !== 'https')) {
     res.redirect('https://' + String(req.headers.host) + String(req.url));
   } else {
-    next();
+    return next();
   }
 }
