@@ -27,10 +27,11 @@ export interface MagicHttpsConfig {
 }
 
 export interface MagicProxyDefinition {
-  destination: Array<string>,
-  sockDestination: Array<string>,
+  domain: string,
+  round: number,
   timeout: number,
-  round: number
+  destination: Array<string>,
+  sockDestination: Array<string>
 }
 
 export interface ProxyConfig {
@@ -73,6 +74,7 @@ const standardConfig: ProxyConfig = {
   },
   proxies: [],
   default_proxy: {
+    domain: '*',
     destination: [],
     sockDestination: [],
     timeout: 10000,
@@ -80,7 +82,7 @@ const standardConfig: ProxyConfig = {
   }
 };
 
-function is_set(val: any) {
+function defined(val: any) {
   return !((typeof val == 'undefined') || (val === null));
 }
 
@@ -90,9 +92,9 @@ function is_set(val: any) {
  */
 function defaultConfigs(options?: ProxyConfig) {
   let opts = options || standardConfig;
-  opts.enable_hsts = !is_set(opts.enable_hsts) ? false : opts.enable_hsts;
-  opts.allow_unknown_host = !is_set(opts.allow_unknown_host) ? true : opts.allow_unknown_host;
-  opts.allow_websockets = !is_set(opts.allow_websockets) ? false : opts.allow_websockets;
+  opts.enable_hsts = !defined(opts.enable_hsts) ? false : opts.enable_hsts;
+  opts.allow_unknown_host = !defined(opts.allow_unknown_host) ? true : opts.allow_unknown_host;
+  opts.allow_websockets = !defined(opts.allow_websockets) ? false : opts.allow_websockets;
   opts.http = opts.http || standardConfig.http;
   opts.https = opts.https || standardConfig.https;
   opts.proxies = opts.proxies || [];
