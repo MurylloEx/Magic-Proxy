@@ -222,10 +222,12 @@ MagicProxy.create()
 ## Scripts
 
 ```bash
-npm test        # vitest
-npm run build   # emit dist/
+npm test        # vitest — colocated src/**/*.spec.ts + tests/integration
+npm run build   # emit dist/ (specs excluded)
 npm run lint    # typecheck sources and tests
 ```
+
+Unit specs live next to the modules they cover (`src/**/*.spec.ts`). Functional coverage for HTTP, HTTPS, `ws://`, and `wss://` is under `tests/integration/` (uses Node built-ins plus the `ws` **devDependency** for WebSocket clients/servers).
 
 ## License
 
