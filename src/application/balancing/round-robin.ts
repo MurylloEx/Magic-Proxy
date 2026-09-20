@@ -1,4 +1,4 @@
-import type { BalancerStrategy, LoadBalancer } from '../../domain/types.js';
+import type { BalancerStrategy, LoadBalancer } from '#src/domain/types.js';
 
 /**
  * Round-Robin load balancer (Strategy pattern).

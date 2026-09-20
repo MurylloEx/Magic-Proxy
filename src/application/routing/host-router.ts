@@ -1,6 +1,6 @@
 import type { IncomingMessage } from 'node:http';
-import { matchDomain, parseHostname } from '../../domain/index.js';
-import type { MagicProxyConfig, RouteConfig } from '../../domain/types.js';
+import { matchDomain, parseHostname } from '#src/domain/index.js';
+import type { MagicProxyConfig, RouteConfig } from '#src/domain/types.js';
 
 export interface ResolvedRoute {
   readonly route: RouteConfig;

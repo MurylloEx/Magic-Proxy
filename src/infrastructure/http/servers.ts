@@ -1,7 +1,7 @@
 import http, { type Server as HttpServer } from 'node:http';
 import https, { type Server as HttpsServer } from 'node:https';
 import type { Express } from 'express';
-import type { MagicProxyConfig } from '../../domain/types.js';
+import type { MagicProxyConfig } from '#src/domain/types.js';
 
 export interface BoundServers {
   readonly httpServer: HttpServer | undefined;

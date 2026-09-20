@@ -21,6 +21,7 @@
     "skipLibCheck": true,
     "moduleResolution": "Node16",
     "resolveJsonModule": true,
+    "customConditions": ["source"],
     "types": ["node"]
   },
   "include": ["src/**/*"],

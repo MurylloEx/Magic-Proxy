@@ -10,6 +10,12 @@
       "default": "./dist/index.js"
     }
   },
+  "imports": {
+    "#src/*": {
+      "source": "./src/*",
+      "default": "./dist/*"
+    }
+  },
   "files": [
     "dist",
     "LICENSE",

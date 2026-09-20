@@ -1,6 +1,6 @@
 import type { NextFunction, Request, Response } from 'express';
-import { isKnownHost } from '../../application/routing/host-router.js';
-import type { MagicProxyConfig } from '../../domain/types.js';
+import { isKnownHost } from '#src/application/routing/host-router.js';
+import type { MagicProxyConfig } from '#src/domain/types.js';
 
 /**
  * Drop connections whose Host does not match any configured route.

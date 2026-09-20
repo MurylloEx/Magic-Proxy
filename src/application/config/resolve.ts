@@ -2,7 +2,7 @@ import type {
   MagicProxyConfig,
   MagicProxyOptions,
   RouteConfig,
-} from '../../domain/types.js';
+} from '#src/domain/types.js';
 import { DEFAULT_PROXY_CONFIG, DEFAULT_ROUTE } from './defaults.js';
 
 function mergeRoute(

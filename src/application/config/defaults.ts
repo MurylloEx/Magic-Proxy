@@ -2,8 +2,8 @@ import type {
   BalancerStrategy,
   MagicProxyConfig,
   RouteConfig,
-} from '../../domain/types.js';
-import { createRoundRobinBalancer } from '../balancing/round-robin.js';
+} from '#src/domain/types.js';
+import { createRoundRobinBalancer } from '#src/application/balancing/round-robin.js';
 
 export const DEFAULT_ROUTE: RouteConfig = {
   host: '*',

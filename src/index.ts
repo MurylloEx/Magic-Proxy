@@ -10,13 +10,13 @@ export type {
   ProxyMiddleware,
   RouteConfig,
   SecurityPolicy,
-} from './domain/index.js';
+} from '#src/domain/index.js';
 
 export {
   matchDomain,
   matchWildcard,
   parseHostname,
-} from './domain/index.js';
+} from '#src/domain/index.js';
 
 export {
   ConfigValidationError,
@@ -29,10 +29,10 @@ export {
   resolveHostRoute,
   roundRobin,
   validateConfig,
-} from './application/index.js';
+} from '#src/application/index.js';
 
 export {
   MagicProxy,
   MagicProxyBuilder,
   RouteBuilder,
-} from './presentation/builder.js';
+} from '#src/presentation/builder.js';

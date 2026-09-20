@@ -2,22 +2,22 @@ export {
   DEFAULT_BALANCER_STRATEGY,
   DEFAULT_PROXY_CONFIG,
   DEFAULT_ROUTE,
-} from './config/defaults.js';
-export { resolveConfig } from './config/resolve.js';
+} from '#src/application/config/defaults.js';
+export { resolveConfig } from '#src/application/config/resolve.js';
 export {
   ConfigValidationError,
   validateConfig,
-} from './config/validate.js';
+} from '#src/application/config/validate.js';
 export {
   createBalancerRegistry,
   createRoundRobinBalancer,
   roundRobin,
   type BalancerRegistry,
   type DestinationKind,
-} from './balancing/round-robin.js';
+} from '#src/application/balancing/round-robin.js';
 export {
   isKnownHost,
   resolveHostRoute,
   type ResolvedRoute,
-} from './routing/host-router.js';
-export { applyMiddlewareChain } from './middleware/chain.js';
+} from '#src/application/routing/host-router.js';
+export { applyMiddlewareChain } from '#src/application/middleware/chain.js';
