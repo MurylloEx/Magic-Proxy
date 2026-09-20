@@ -1,9 +1,14 @@
-# Magic Reverse Proxy
+<p align="center">
+  <a href="https://www.npmjs.com/package/magic-reverse-proxy"><img src="https://badgen.net/npm/v/magic-reverse-proxy" alt="npm version"/></a>
+  <a href="https://www.npmjs.com/package/magic-reverse-proxy"><img src="https://badgen.net/npm/dt/magic-reverse-proxy" alt="npm downloads"/></a>
+  <a href="https://www.npmjs.com/package/magic-reverse-proxy"><img src="https://badgen.net/npm/license/magic-reverse-proxy" alt="license"/></a>
+  <a href="https://www.npmjs.com/package/magic-reverse-proxy"><img src="https://badgen.net/npm/types/magic-reverse-proxy" alt="types"/></a>
+  <a href="https://github.com/MurylloEx/Magic-Proxy/actions/workflows/ci.yml"><img src="https://badgen.net/github/checks/MurylloEx/Magic-Proxy/master/CI" alt="CI"/></a>
+  <img src="https://badgen.net/badge/node/%3E=22/green" alt="node"/>
+  <a href="https://github.com/MurylloEx"><img src="https://badgen.net/badge/author/MurylloEx/red?icon=label" alt="author"/></a>
+</p>
 
-[![npm version](https://badgen.net/npm/v/magic-reverse-proxy)](https://www.npmjs.com/package/magic-reverse-proxy)
-[![license](https://badgen.net/npm/license/magic-reverse-proxy)](./LICENSE)
-[![node](https://badgen.net/badge/node/%3E%3D22/green)](https://nodejs.org/)
-[![author](https://badgen.net/badge/author/MurylloEx/red)](https://github.com/MurylloEx)
+# Magic Reverse Proxy
 
 **Magic Reverse Proxy** (`magic-reverse-proxy`) is a TypeScript HTTP/HTTPS reverse proxy for Node.js. Route traffic by `Host` (virtual hosts and `*` wildcards), proxy WebSocket upgrades, balance upstreams with a pluggable strategy (Round-Robin by default), and apply HTTPS redirect / HSTS policy helpers.
 
