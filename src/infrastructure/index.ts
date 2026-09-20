@@ -1,10 +1,10 @@
-export { sendBadGateway } from '#src/infrastructure/proxy/bad-gateway.js';
+export { sendBadGateway } from '@/infrastructure/proxy/bad-gateway.js';
 export {
   createProxyClient,
   type ProxyClient,
-} from '#src/infrastructure/proxy/http-proxy-client.js';
+} from '@/infrastructure/proxy/http-proxy-client.js';
 export {
   closeServers,
   startServers,
   type BoundServers,
-} from '#src/infrastructure/http/servers.js';
+} from '@/infrastructure/http/servers.js';

@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { resolveConfig } from '#src/application/config/resolve.js';
+import { resolveConfig } from '@/application/config/resolve.js';
 import {
   ConfigValidationError,
   validateConfig,
-} from '#src/application/config/validate.js';
+} from '@/application/config/validate.js';
 
 describe('validateConfig', () => {
   it('accepts a minimal valid HTTP configuration', () => {

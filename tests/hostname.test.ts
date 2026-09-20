@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { IncomingMessage } from 'node:http';
-import { parseHostname } from '#src/domain/hostname.js';
-import { matchWildcard } from '#src/domain/wildcard.js';
+import { parseHostname } from '@/domain/hostname.js';
+import { matchWildcard } from '@/domain/wildcard.js';
 
 function fakeRequest(headers: Record<string, string>): IncomingMessage {
   return { headers } as unknown as IncomingMessage;

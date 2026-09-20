@@ -1,9 +1,9 @@
 import type { NextFunction, Request, Response } from 'express';
-import type { BalancerRegistry } from '#src/application/balancing/round-robin.js';
-import { resolveHostRoute } from '#src/application/routing/host-router.js';
-import type { MagicProxyConfig } from '#src/domain/types.js';
-import { sendBadGateway } from '#src/infrastructure/proxy/bad-gateway.js';
-import type { ProxyClient } from '#src/infrastructure/proxy/http-proxy-client.js';
+import type { BalancerRegistry } from '@/application/balancing/round-robin.js';
+import { resolveHostRoute } from '@/application/routing/host-router.js';
+import type { MagicProxyConfig } from '@/domain/types.js';
+import { sendBadGateway } from '@/infrastructure/proxy/bad-gateway.js';
+import type { ProxyClient } from '@/infrastructure/proxy/http-proxy-client.js';
 
 /**
  * Terminal Express middleware that reverse-proxies HTTP to the matched upstream.

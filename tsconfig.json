@@ -5,6 +5,9 @@
     "lib": ["ES2022"],
     "outDir": "dist",
     "rootDir": "src",
+    "paths": {
+      "@/*": ["./src/*"]
+    },
     "declaration": true,
     "declarationMap": true,
     "sourceMap": true,
@@ -21,7 +24,6 @@
     "skipLibCheck": true,
     "moduleResolution": "Node16",
     "resolveJsonModule": true,
-    "customConditions": ["source"],
     "types": ["node"]
   },
   "include": ["src/**/*"],

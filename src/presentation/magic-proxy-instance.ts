@@ -5,21 +5,21 @@ import {
   applyMiddlewareChain,
   createBalancerRegistry,
   validateConfig,
-} from '#src/application/index.js';
-import type { MagicProxyConfig, MagicProxyInstance } from '#src/domain/types.js';
+} from '@/application/index.js';
+import type { MagicProxyConfig, MagicProxyInstance } from '@/domain/types.js';
 import {
   closeServers,
   createProxyClient,
   startServers,
   type BoundServers,
-} from '#src/infrastructure/index.js';
-import { createBlockUnknownHostsMiddleware } from '#src/presentation/middleware/block-unknown-hosts.js';
+} from '@/infrastructure/index.js';
+import { createBlockUnknownHostsMiddleware } from '@/presentation/middleware/block-unknown-hosts.js';
 import {
   createForceHttpsMiddleware,
   createHstsHeaderMiddleware,
-} from '#src/presentation/middleware/force-https.js';
-import { createHttpProxyMiddleware } from '#src/presentation/middleware/http-proxy.js';
-import { createWebSocketProxyHandler } from '#src/presentation/middleware/websocket-proxy.js';
+} from '@/presentation/middleware/force-https.js';
+import { createHttpProxyMiddleware } from '@/presentation/middleware/http-proxy.js';
+import { createWebSocketProxyHandler } from '@/presentation/middleware/websocket-proxy.js';
 
 function asRequestHandlers(
   middlewares: readonly unknown[],
