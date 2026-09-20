@@ -1,7 +1,7 @@
 {
   "name": "magic-reverse-proxy",
-  "version": "4.0.0",
-  "description": "HTTP/HTTPS reverse proxy with a fluent TypeScript API, virtual hosts, WebSocket support, pluggable Round-Robin balancing, and HSTS policy helpers.",
+  "version": "5.0.0",
+  "description": "HTTP/HTTPS reverse proxy with a fluent TypeScript API, virtual hosts, WebSocket support, pluggable Round-Robin balancing, and HSTS policy helpers — zero Express/http-proxy dependencies.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "exports": {
@@ -46,13 +46,8 @@
   "engines": {
     "node": ">=22"
   },
-  "dependencies": {
-    "express": "^5.1.0",
-    "http-proxy": "^1.18.1"
-  },
+  "dependencies": {},
   "devDependencies": {
-    "@types/express": "^5.0.3",
-    "@types/http-proxy": "^1.17.16",
     "@types/node": "^22.15.30",
     "tsc-alias": "^1.9.5",
     "typescript": "^5.8.3",

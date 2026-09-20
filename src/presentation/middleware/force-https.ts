@@ -1,4 +1,5 @@
-import type { NextFunction, Request, Response } from 'express';
+import type { IncomingMessage, ServerResponse } from 'node:http';
+import type { ProxyMiddleware } from '@/domain/types.js';
 
 /**
  * Redirect plain HTTP to HTTPS (except localhost).
@@ -6,8 +7,8 @@ import type { NextFunction, Request, Response } from 'express';
  */
 export function createForceHttpsMiddleware(
   hstsMaxAgeSeconds: number | undefined,
-): (req: Request, res: Response, next: NextFunction) => void {
-  return (req: Request, res: Response, next: NextFunction): void => {
+): ProxyMiddleware {
+  return (req: IncomingMessage, res: ServerResponse, next): void => {
     const host = String(req.headers.host ?? '');
     const forwardedProto = String(
       req.headers['x-forwarded-proto'] ?? '',
@@ -33,14 +34,16 @@ export function createForceHttpsMiddleware(
       return;
     }
 
-    res.redirect(301, `https://${host}${req.url}`);
+    res.statusCode = 301;
+    res.setHeader('Location', `https://${host}${req.url ?? '/'}`);
+    res.end();
   };
 }
 
 export function createHstsHeaderMiddleware(
   maxAgeSeconds: number,
-): (req: Request, res: Response, next: NextFunction) => void {
-  return (_req: Request, res: Response, next: NextFunction): void => {
+): ProxyMiddleware {
+  return (_req: IncomingMessage, res: ServerResponse, next): void => {
     res.setHeader(
       'Strict-Transport-Security',
       `max-age=${maxAgeSeconds}; includeSubDomains`,

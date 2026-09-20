@@ -1,15 +1,17 @@
-import type { NextFunction, Request, Response } from 'express';
+import type { IncomingMessage, ServerResponse } from 'node:http';
 import { isKnownHost } from '@/application/routing/host-router.js';
-import type { MagicProxyConfig } from '@/domain/types.js';
+import { parseHostname } from '@/domain/hostname.js';
+import type { MagicProxyConfig, ProxyMiddleware } from '@/domain/types.js';
 
 /**
  * Drop connections whose Host does not match any configured route.
  */
 export function createBlockUnknownHostsMiddleware(
   config: MagicProxyConfig,
-): (req: Request, res: Response, next: NextFunction) => void {
-  return (req: Request, _res: Response, next: NextFunction): void => {
-    if (isKnownHost(config.routes, req.hostname)) {
+): ProxyMiddleware {
+  return (req: IncomingMessage, _res: ServerResponse, next): void => {
+    const hostname = parseHostname(req);
+    if (hostname && isKnownHost(config.routes, hostname)) {
       next();
       return;
     }

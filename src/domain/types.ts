@@ -1,11 +1,10 @@
-import type { Express } from 'express';
-import type { Server as HttpServer } from 'node:http';
+import type { IncomingMessage, Server as HttpServer, ServerResponse } from 'node:http';
 import type { Server as HttpsServer } from 'node:https';
 
-/** Express-compatible middleware signature. */
+/** Native Node middleware signature (Connect-style). */
 export type ProxyMiddleware = (
-  req: unknown,
-  res: unknown,
+  req: IncomingMessage,
+  res: ServerResponse,
   next: (err?: unknown) => void,
 ) => void;
 
@@ -93,12 +92,10 @@ export type MagicProxyOptions = {
 
 export interface MagicProxyInstance {
   readonly config: MagicProxyConfig;
-  readonly httpApp: Express;
-  readonly httpsApp: Express;
   readonly httpServer: HttpServer | undefined;
   readonly httpsServer: HttpsServer | undefined;
   /** Start listeners and attach WebSocket upgrade handlers. */
   readonly listen: () => void;
-  /** Close listeners and release the proxy client. */
+  /** Close listeners and release proxy resources. */
   readonly close: () => void;
 }

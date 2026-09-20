@@ -18,7 +18,6 @@ describe('MagicProxy fluent API', () => {
 
     expect(typeof proxy.listen).toBe('function');
     expect(typeof proxy.close).toBe('function');
-    expect(proxy.httpApp).toBeTruthy();
     expect(proxy.config.http.port).toBe(18080);
     expect(proxy.config.routes).toHaveLength(1);
     expect(proxy.config.routes[0]?.targets).toEqual([
@@ -29,6 +28,7 @@ describe('MagicProxy fluent API', () => {
     expect(proxy.config.policy.allowUnknownHosts).toBe(false);
     expect(proxy.config.policy.allowWebSockets).toBe(true);
     expect(proxy.httpServer).toBeUndefined();
+    expect(proxy.httpsServer).toBeUndefined();
     expect(Object.isFrozen(proxy.config)).toBe(true);
   });
 

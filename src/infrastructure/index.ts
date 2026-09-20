@@ -4,7 +4,14 @@ export {
   type ProxyClient,
 } from '@/infrastructure/proxy/http-proxy-client.js';
 export {
+  buildUpstreamRequestHeaders,
+  filterUpstreamResponseHeaders,
+  toHttpUpstreamUrl,
+} from '@/infrastructure/proxy/headers.js';
+export {
   closeServers,
+  createRequestListener,
+  runMiddlewareChain,
   startServers,
   type BoundServers,
 } from '@/infrastructure/http/servers.js';

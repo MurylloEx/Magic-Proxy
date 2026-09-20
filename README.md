@@ -7,6 +7,8 @@
 
 **Magic Reverse Proxy** (`magic-reverse-proxy`) is a TypeScript HTTP/HTTPS reverse proxy for Node.js. Route traffic by `Host` (virtual hosts and `*` wildcards), proxy WebSocket upgrades, balance upstreams with a pluggable strategy (Round-Robin by default), and apply HTTPS redirect / HSTS policy helpers.
 
+v5 uses only Node.js built-ins (`node:http`, `node:https`, `node:net`) — no Express, no `http-proxy`.
+
 ## Requirements
 
 - Node.js **>= 22**
@@ -91,14 +93,16 @@ All public names use **camelCase**.
 | `http.port` | `number` | `80` | HTTP listen port |
 | `http.enabled` | `boolean` | `true` | Enable the HTTP listener |
 | `http.onListen` | `() => void` | no-op | Called when the HTTP server starts |
-| `http.middlewares` | `ProxyMiddleware[]` | `[]` | Express middleware before the proxy |
+| `http.middlewares` | `ProxyMiddleware[]` | `[]` | Connect-style middleware before the proxy |
 | `https.port` | `number` | `443` | HTTPS listen port |
 | `https.enabled` | `boolean` | `false` | Enable the HTTPS listener |
 | `https.key` / `https.cert` | `string` | `''` | PEM material (required when HTTPS is enabled) |
 | `https.onListen` | `() => void` | no-op | Called when the HTTPS server starts |
-| `https.middlewares` | `ProxyMiddleware[]` | `[]` | Express middleware on the HTTPS app |
+| `https.middlewares` | `ProxyMiddleware[]` | `[]` | Connect-style middleware on the HTTPS listener |
 
 Fluent helpers: `.http({...})`, `.https({ key, cert, ... })`, `.useHttp(...)`, `.useHttps(...)`.
+
+`ProxyMiddleware` is `(req, res, next) => void` over Node `IncomingMessage` / `ServerResponse` (not Express).
 
 ### Routes
 
@@ -137,9 +141,8 @@ HTTP and WebSocket pools keep **independent** cursors. Use `.balancer(roundRobin
 | Member | Description |
 | --- | --- |
 | `listen()` | Mount middleware, start servers, attach WebSocket upgrade handlers |
-| `close()` | Close servers and release the proxy client |
-| `httpApp` / `httpsApp` | Underlying Express applications |
-| `httpServer` / `httpsServer` | Node servers after `listen()` (otherwise `undefined`) |
+| `close()` | Close servers and release proxy resources |
+| `httpServer` / `httpsServer` | Node `http.Server` / `https.Server` after `listen()` (otherwise `undefined`) |
 | `config` | Frozen resolved `MagicProxyConfig` |
 
 Invalid configuration throws `ConfigValidationError` at `build()` / `from()`.
@@ -150,8 +153,8 @@ Invalid configuration throws `ConfigValidationError` at `build()` / `from()`.
 src/
   domain/           Types, hostname parsing, wildcard matching
   application/      Config resolve/validate, host routing, balancer strategies
-  infrastructure/   http-proxy client, HTTP/HTTPS server binding
-  presentation/     MagicProxy builder + Express / upgrade middlewares
+  infrastructure/   Native HTTP/WS proxy client, server binding, middleware runner
+  presentation/     MagicProxy builder + Connect-style / upgrade middlewares
 ```
 
 - **Factory** — `MagicProxy.create()` / `MagicProxy.from()`
@@ -159,15 +162,23 @@ src/
 - **Middleware chain** — user middleware → host policy → HSTS/redirect → proxy
 - **Immutability** — builders and resolved `config` do not mutate route objects at runtime
 
+## Breaking changes in v5
+
+| Removed / changed | Replacement |
+| --- | --- |
+| Runtime deps `express`, `http-proxy` | Node built-ins only |
+| `httpApp` / `httpsApp` (Express apps) | Use `httpServer` / `httpsServer` after `listen()` |
+| Express `Request` / `Response` in middleware | Node `IncomingMessage` / `ServerResponse` |
+
 ## Migration from snake_case / `createProxy`
 
-v4 replaces the older `createProxy` API. There is no deprecated adapter.
+v4+ replaces the older `createProxy` API. There is no deprecated adapter.
 
-| Old | v4 |
+| Old | v5 |
 | --- | --- |
 | `createProxy({...})` | `MagicProxy.from({...})` or `MagicProxy.create()...build()` |
 | `bind()` / `unbind()` | `listen()` / `close()` |
-| `app` / `appssl` | `httpApp` / `httpsApp` |
+| `app` / `appssl` / `httpApp` / `httpsApp` | `httpServer` / `httpsServer` (after `listen()`) |
 | `allow_unknown_host` | `policy.allowUnknownHosts` |
 | `allow_websockets` | `policy.allowWebSockets` |
 | `enable_hsts` | `policy.forceHttpsRedirect` + `policy.hstsMaxAgeSeconds` |

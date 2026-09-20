@@ -1,4 +1,4 @@
-import type { Response } from 'express';
+import type { ServerResponse } from 'node:http';
 
 const BAD_GATEWAY_HTML = `<!DOCTYPE html>
 <html lang="en">
@@ -10,9 +10,11 @@ const BAD_GATEWAY_HTML = `<!DOCTYPE html>
 </body>
 </html>`;
 
-export function sendBadGateway(res: Response): void {
+export function sendBadGateway(res: ServerResponse): void {
   if (res.headersSent) {
     return;
   }
-  res.status(502).set('Content-Type', 'text/html; charset=utf-8').end(BAD_GATEWAY_HTML);
+  res.statusCode = 502;
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.end(BAD_GATEWAY_HTML);
 }

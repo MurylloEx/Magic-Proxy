@@ -1,15 +1,18 @@
-import Express, { type RequestHandler } from 'express';
 import type { Server as HttpServer } from 'node:http';
 import type { Server as HttpsServer } from 'node:https';
 import {
-  applyMiddlewareChain,
   createBalancerRegistry,
   validateConfig,
 } from '@/application/index.js';
-import type { MagicProxyConfig, MagicProxyInstance } from '@/domain/types.js';
+import type {
+  MagicProxyConfig,
+  MagicProxyInstance,
+  ProxyMiddleware,
+} from '@/domain/types.js';
 import {
   closeServers,
   createProxyClient,
+  createRequestListener,
   startServers,
   type BoundServers,
 } from '@/infrastructure/index.js';
@@ -21,31 +24,23 @@ import {
 import { createHttpProxyMiddleware } from '@/presentation/middleware/http-proxy.js';
 import { createWebSocketProxyHandler } from '@/presentation/middleware/websocket-proxy.js';
 
-function asRequestHandlers(
-  middlewares: readonly unknown[],
-): readonly RequestHandler[] {
-  return middlewares as readonly RequestHandler[];
-}
-
 function buildListenerPipeline(
   config: MagicProxyConfig,
   client: ReturnType<typeof createProxyClient>,
   balancers: ReturnType<typeof createBalancerRegistry>,
-  userMiddlewares: readonly unknown[],
+  userMiddlewares: readonly ProxyMiddleware[],
   options: {
     readonly forceHttpsRedirect: boolean;
     readonly attachHstsHeader: boolean;
   },
-): readonly RequestHandler[] {
+): readonly ProxyMiddleware[] {
   return [
-    ...asRequestHandlers(userMiddlewares),
+    ...userMiddlewares,
     ...(!config.policy.allowUnknownHosts
       ? [createBlockUnknownHostsMiddleware(config)]
       : []),
     ...(options.forceHttpsRedirect
-      ? [
-          createForceHttpsMiddleware(config.policy.hstsMaxAgeSeconds),
-        ]
+      ? [createForceHttpsMiddleware(config.policy.hstsMaxAgeSeconds)]
       : []),
     ...(options.attachHstsHeader &&
     config.policy.hstsMaxAgeSeconds !== undefined
@@ -63,8 +58,6 @@ export function createMagicProxyInstance(
 ): MagicProxyInstance {
   validateConfig(config);
 
-  const httpApp = Express();
-  const httpsApp = Express();
   const client = createProxyClient();
   const balancers = createBalancerRegistry(config.balancerStrategy);
 
@@ -83,39 +76,41 @@ export function createMagicProxyInstance(
       return;
     }
 
-    if (config.http.enabled) {
-      applyMiddlewareChain(
-        httpApp,
-        buildListenerPipeline(
-          config,
-          client,
-          balancers,
-          config.http.middlewares,
-          {
-            forceHttpsRedirect: config.policy.forceHttpsRedirect,
-            attachHstsHeader: false,
-          },
-        ),
-      );
-    }
+    const httpListener = config.http.enabled
+      ? createRequestListener(
+          buildListenerPipeline(
+            config,
+            client,
+            balancers,
+            config.http.middlewares,
+            {
+              forceHttpsRedirect: config.policy.forceHttpsRedirect,
+              attachHstsHeader: false,
+            },
+          ),
+        )
+      : undefined;
 
-    if (config.https.enabled) {
-      applyMiddlewareChain(
-        httpsApp,
-        buildListenerPipeline(
-          config,
-          client,
-          balancers,
-          config.https.middlewares,
-          {
-            forceHttpsRedirect: false,
-            attachHstsHeader: true,
-          },
-        ),
-      );
-    }
+    const httpsListener = config.https.enabled
+      ? createRequestListener(
+          buildListenerPipeline(
+            config,
+            client,
+            balancers,
+            config.https.middlewares,
+            {
+              forceHttpsRedirect: false,
+              attachHstsHeader: true,
+            },
+          ),
+        )
+      : undefined;
 
-    const bound: BoundServers = startServers(config, httpApp, httpsApp);
+    const bound: BoundServers = startServers(
+      config,
+      httpListener,
+      httpsListener,
+    );
     servers.httpServer = bound.httpServer;
     servers.httpsServer = bound.httpsServer;
 
@@ -139,8 +134,6 @@ export function createMagicProxyInstance(
 
   return {
     config,
-    httpApp,
-    httpsApp,
     get httpServer() {
       return servers.httpServer;
     },

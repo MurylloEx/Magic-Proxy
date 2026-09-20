@@ -20,4 +20,3 @@ export {
   resolveHostRoute,
   type ResolvedRoute,
 } from '@/application/routing/host-router.js';
-export { applyMiddlewareChain } from '@/application/middleware/chain.js';
