@@ -5,9 +5,7 @@
 [![node](https://badgen.net/badge/node/%3E%3D22/green)](https://nodejs.org/)
 [![author](https://badgen.net/badge/author/MurylloEx/red)](https://github.com/MurylloEx)
 
-TypeScript reverse proxy for Node.js with virtual hosts, WebSocket proxying, pluggable load balancing, middleware pipelines, and HTTPS / HSTS policy helpers.
-
-Package name on npm: **`magic-reverse-proxy`**.
+**Magic Reverse Proxy** (`magic-reverse-proxy`) is a TypeScript HTTP/HTTPS reverse proxy for Node.js. Route traffic by `Host` (virtual hosts and `*` wildcards), proxy WebSocket upgrades, balance upstreams with a pluggable strategy (Round-Robin by default), and apply HTTPS redirect / HSTS policy helpers.
 
 ## Requirements
 
@@ -19,7 +17,9 @@ Package name on npm: **`magic-reverse-proxy`**.
 npm install magic-reverse-proxy
 ```
 
-## Quick start (fluent)
+## Quick start
+
+### Fluent builder (primary)
 
 ```typescript
 import { MagicProxy, roundRobin } from 'magic-reverse-proxy';
@@ -27,12 +27,14 @@ import { MagicProxy, roundRobin } from 'magic-reverse-proxy';
 const proxy = MagicProxy.create()
   .http({
     port: 8080,
-    onListen: () => console.log('Magic Proxy on :8080'),
+    onListen: () => console.log('Magic Proxy listening on :8080'),
   })
   .route('app.localhost')
     .to('http://127.0.0.1:3001', 'http://127.0.0.1:3002')
     .websockets('ws://127.0.0.1:3001', 'ws://127.0.0.1:3002')
     .timeout(10_000)
+  .route('*.cdn.localhost')
+    .to('http://127.0.0.1:3003')
   .fallback()
     .to('http://127.0.0.1:3999')
   .allowUnknownHosts(false)
@@ -48,7 +50,9 @@ process.on('SIGINT', () => {
 });
 ```
 
-## Declarative alternative
+Each fluent call returns a new immutable builder snapshot. Call `build()` to validate config and obtain a `MagicProxyInstance`, then `listen()` / `close()` for lifecycle.
+
+### Declarative config
 
 ```typescript
 import { MagicProxy } from 'magic-reverse-proxy';
@@ -63,7 +67,9 @@ const proxy = MagicProxy.from({
       timeoutMs: 10_000,
     },
   ],
-  fallback: { targets: ['http://127.0.0.1:3999'] },
+  fallback: {
+    targets: ['http://127.0.0.1:3999'],
+  },
   policy: {
     allowUnknownHosts: false,
     allowWebSockets: true,
@@ -74,44 +80,97 @@ const proxy = MagicProxy.from({
 proxy.listen();
 ```
 
-## Public API sketch
+## Configuration reference
 
-| Surface | Role |
+All public names use **camelCase**.
+
+### Listeners
+
+| Field | Type | Default | Description |
+| --- | --- | --- | --- |
+| `http.port` | `number` | `80` | HTTP listen port |
+| `http.enabled` | `boolean` | `true` | Enable the HTTP listener |
+| `http.onListen` | `() => void` | no-op | Called when the HTTP server starts |
+| `http.middlewares` | `ProxyMiddleware[]` | `[]` | Express middleware before the proxy |
+| `https.port` | `number` | `443` | HTTPS listen port |
+| `https.enabled` | `boolean` | `false` | Enable the HTTPS listener |
+| `https.key` / `https.cert` | `string` | `''` | PEM material (required when HTTPS is enabled) |
+| `https.onListen` | `() => void` | no-op | Called when the HTTPS server starts |
+| `https.middlewares` | `ProxyMiddleware[]` | `[]` | Express middleware on the HTTPS app |
+
+Fluent helpers: `.http({...})`, `.https({ key, cert, ... })`, `.useHttp(...)`, `.useHttps(...)`.
+
+### Routes
+
+| Field | Type | Default | Description |
+| --- | --- | --- | --- |
+| `routes[].host` | `string` | — | Host pattern (`api.example.com`, `*.cdn.example.com`, `*`) |
+| `routes[].targets` | `string[]` | `[]` | HTTP upstream URLs (load-balanced) |
+| `routes[].websocketTargets` | `string[]` | `[]` | WebSocket upstream URLs |
+| `routes[].timeoutMs` | `number` | `10000` | Upstream connect timeout |
+| `routes[].initialIndex` | `number` | `0` | Initial balancer cursor (not mutated at runtime) |
+| `fallback` | same shape | host `*` | Used when `policy.allowUnknownHosts` is `true` and no route matches |
+
+Fluent helpers: `.route(host).to(...).websockets(...).timeout(ms).startAt(index)`, `.fallback()`.
+
+### Policy
+
+| Field | Type | Default | Description |
+| --- | --- | --- | --- |
+| `policy.allowUnknownHosts` | `boolean` | `true` | If `false`, unknown Host values are dropped |
+| `policy.allowWebSockets` | `boolean` | `false` | Proxy `Upgrade` requests via `websocketTargets` |
+| `policy.forceHttpsRedirect` | `boolean` | `false` | Redirect HTTP → HTTPS (skips localhost) |
+| `policy.hstsMaxAgeSeconds` | `number \| undefined` | `undefined` | Send `Strict-Transport-Security` when set |
+
+Fluent helpers: `.allowUnknownHosts(bool)`, `.allowWebSockets(bool)`, `.forceHttps()`, `.hsts(maxAge \| false)`.
+
+### Load balancing
+
+| Field | Type | Default | Description |
+| --- | --- | --- | --- |
+| `balancerStrategy` | `BalancerStrategy` | Round-Robin | `(size, initialIndex) => LoadBalancer` |
+
+HTTP and WebSocket pools keep **independent** cursors. Use `.balancer(roundRobin())` or pass a custom strategy.
+
+### Instance
+
+| Member | Description |
 | --- | --- |
-| `MagicProxy.create()` | Immutable fluent builder |
-| `MagicProxy.from(options)` | Declarative camelCase config |
-| `.route(host).to(...).websockets(...).timeout(ms)` | Virtual-host route |
-| `.fallback().to(...)` | Catch-all when unknown hosts are allowed |
-| `.allowUnknownHosts` / `.allowWebSockets` / `.forceHttps` / `.hsts` | Security policy |
-| `.balancer(roundRobin())` | Inject load-balancer **Strategy** |
-| `.useHttp` / `.useHttps` | Middleware pipeline per listener |
-| `proxy.listen()` / `proxy.close()` | Lifecycle |
-| `proxy.httpApp` / `proxy.httpsApp` | Underlying Express apps |
+| `listen()` | Mount middleware, start servers, attach WebSocket upgrade handlers |
+| `close()` | Close servers and release the proxy client |
+| `httpApp` / `httpsApp` | Underlying Express applications |
+| `httpServer` / `httpsServer` | Node servers after `listen()` (otherwise `undefined`) |
+| `config` | Frozen resolved `MagicProxyConfig` |
 
-Resolved `proxy.config` is **frozen**. Balancer cursors live outside the config object.
+Invalid configuration throws `ConfigValidationError` at `build()` / `from()`.
 
 ## Architecture
 
 ```
 src/
   domain/           Types, hostname parsing, wildcard matching
-  application/      Config resolve/validate, routing, balancer strategies
+  application/      Config resolve/validate, host routing, balancer strategies
   infrastructure/   http-proxy client, HTTP/HTTPS server binding
   presentation/     MagicProxy builder + Express / upgrade middlewares
 ```
 
-## Migration from v3 (snake_case / `createProxy`)
+- **Factory** — `MagicProxy.create()` / `MagicProxy.from()`
+- **Strategy** — pluggable `BalancerStrategy` (default Round-Robin)
+- **Middleware chain** — user middleware → host policy → HSTS/redirect → proxy
+- **Immutability** — builders and resolved `config` do not mutate route objects at runtime
 
-v4 replaces the v3 surface. Map fields as follows:
+## Migration from snake_case / `createProxy`
 
-| v3 | v4 |
+v4 replaces the older `createProxy` API. There is no deprecated adapter.
+
+| Old | v4 |
 | --- | --- |
 | `createProxy({...})` | `MagicProxy.from({...})` or `MagicProxy.create()...build()` |
 | `bind()` / `unbind()` | `listen()` / `close()` |
 | `app` / `appssl` | `httpApp` / `httpsApp` |
 | `allow_unknown_host` | `policy.allowUnknownHosts` |
 | `allow_websockets` | `policy.allowWebSockets` |
-| `enable_hsts` | `policy.forceHttpsRedirect` + `policy.hstsMaxAgeSeconds` (or `.forceHttps()` / `.hsts()`) |
+| `enable_hsts` | `policy.forceHttpsRedirect` + `policy.hstsMaxAgeSeconds` |
 | `http.start_callback` | `http.onListen` |
 | `https.sslkey` / `sslcert` | `https.key` / `https.cert` |
 | `proxies[].domain` | `routes[].host` |
@@ -121,10 +180,8 @@ v4 replaces the v3 surface. Map fields as follows:
 | `proxies[].round` | `routes[].initialIndex` |
 | `default_proxy` | `fallback` |
 
-Example v3 → v4:
-
 ```typescript
-// v3
+// Before
 createProxy({
   allow_unknown_host: false,
   allow_websockets: true,
@@ -138,7 +195,7 @@ createProxy({
   }],
 }).bind();
 
-// v4
+// After
 MagicProxy.create()
   .http({ port: 8080 })
   .route('app.localhost')
@@ -154,9 +211,9 @@ MagicProxy.create()
 ## Scripts
 
 ```bash
-npm test
-npm run build
-npm run lint
+npm test        # vitest
+npm run build   # emit dist/
+npm run lint    # typecheck sources and tests
 ```
 
 ## License
