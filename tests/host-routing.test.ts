@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import type { IncomingMessage } from 'node:http';
-import { resolveConfig } from '@/application/config/resolve.js';
+import { resolveConfig } from '../src/application/config/resolve.js';
 import {
   isKnownHost,
   resolveHostRoute,
-} from '@/application/routing/host-router.js';
+} from '../src/application/routing/host-router.js';
 
 function fakeRequest(host: string): IncomingMessage {
   return {

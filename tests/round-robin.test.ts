@@ -3,7 +3,7 @@ import {
   createBalancerRegistry,
   createRoundRobinBalancer,
   roundRobin,
-} from '@/application/balancing/round-robin.js';
+} from '../src/application/balancing/round-robin.js';
 
 describe('createRoundRobinBalancer', () => {
   it('cycles through indices in order', () => {

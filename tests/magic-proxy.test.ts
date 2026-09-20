@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { MagicProxy, roundRobin } from '@/index.js';
+import { MagicProxy, roundRobin } from '../src/index.js';
 
 describe('MagicProxy fluent API', () => {
   it('builds an immutable instance with listen/close lifecycle', () => {

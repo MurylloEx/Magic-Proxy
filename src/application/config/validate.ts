@@ -1,4 +1,4 @@
-import type { MagicProxyConfig, RouteConfig } from '@/domain/types.js';
+import type { MagicProxyConfig, RouteConfig } from '../../domain/types.js';
 
 export class ConfigValidationError extends Error {
   readonly issues: readonly string[];

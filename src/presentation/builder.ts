@@ -9,13 +9,13 @@ import type {
   ProxyMiddleware,
   RouteConfig,
   SecurityPolicy,
-} from '@/domain/types.js';
+} from '../domain/types.js';
 import {
   DEFAULT_BALANCER_STRATEGY,
   DEFAULT_PROXY_CONFIG,
   DEFAULT_ROUTE,
-} from '@/application/config/defaults.js';
-import { resolveConfig } from '@/application/config/resolve.js';
+} from '../application/config/defaults.js';
+import { resolveConfig } from '../application/config/resolve.js';
 import { createMagicProxyInstance } from './magic-proxy-instance.js';
 
 const DEFAULT_HSTS_MAX_AGE = 31_536_000;

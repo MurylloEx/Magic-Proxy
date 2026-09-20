@@ -5,14 +5,14 @@ import {
   applyMiddlewareChain,
   createBalancerRegistry,
   validateConfig,
-} from '@/application/index.js';
-import type { MagicProxyConfig, MagicProxyInstance } from '@/domain/types.js';
+} from '../application/index.js';
+import type { MagicProxyConfig, MagicProxyInstance } from '../domain/types.js';
 import {
   closeServers,
   createProxyClient,
   startServers,
   type BoundServers,
-} from '@/infrastructure/index.js';
+} from '../infrastructure/index.js';
 import { createBlockUnknownHostsMiddleware } from './middleware/block-unknown-hosts.js';
 import {
   createForceHttpsMiddleware,

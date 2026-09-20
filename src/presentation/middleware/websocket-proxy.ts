@@ -1,9 +1,9 @@
 import type { IncomingMessage } from 'node:http';
 import type { Socket } from 'node:net';
-import type { BalancerRegistry } from '@/application/balancing/round-robin.js';
-import { resolveHostRoute } from '@/application/routing/host-router.js';
-import type { MagicProxyConfig } from '@/domain/types.js';
-import type { ProxyClient } from '@/infrastructure/proxy/http-proxy-client.js';
+import type { BalancerRegistry } from '../../application/balancing/round-robin.js';
+import { resolveHostRoute } from '../../application/routing/host-router.js';
+import type { MagicProxyConfig } from '../../domain/types.js';
+import type { ProxyClient } from '../../infrastructure/proxy/http-proxy-client.js';
 
 export type UpgradeHandler = (
   req: IncomingMessage,
