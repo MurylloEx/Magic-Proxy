@@ -12,7 +12,7 @@
 
 **Magic Reverse Proxy** (`magic-reverse-proxy`) is a TypeScript HTTP/HTTPS reverse proxy for Node.js. Route traffic by `Host` (virtual hosts and `*` wildcards), proxy WebSocket upgrades, balance upstreams with a pluggable strategy (Round-Robin by default), and apply HTTPS redirect / HSTS policy helpers.
 
-v5 uses only Node.js built-ins (`node:http`, `node:https`, `node:net`) — no Express, no `http-proxy`.
+v3 uses only Node.js built-ins (`node:http`, `node:https`, `node:net`) — no Express, no `http-proxy`.
 
 ## Requirements
 
@@ -167,7 +167,7 @@ src/
 - **Middleware chain** — user middleware → host policy → HSTS/redirect → proxy
 - **Immutability** — builders and resolved `config` do not mutate route objects at runtime
 
-## Breaking changes in v5
+## Breaking changes in v3
 
 | Removed / changed | Replacement |
 | --- | --- |
@@ -177,9 +177,9 @@ src/
 
 ## Migration from snake_case / `createProxy`
 
-v4+ replaces the older `createProxy` API. There is no deprecated adapter.
+v3 replaces the older `createProxy` API. There is no deprecated adapter.
 
-| Old | v5 |
+| Old | v3 |
 | --- | --- |
 | `createProxy({...})` | `MagicProxy.from({...})` or `MagicProxy.create()...build()` |
 | `bind()` / `unbind()` | `listen()` / `close()` |

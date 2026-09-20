@@ -329,7 +329,7 @@ export class MagicProxyBuilder {
 }
 
 /**
- * Primary entry point for Magic Proxy v4.
+ * Primary entry point for Magic Proxy v3.
  *
  * @example Fluent
  * ```ts
