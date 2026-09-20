@@ -1,96 +1,132 @@
 # Magic Reverse Proxy
 
-<p align="center">
-<img src="https://badgen.net/npm/v/magic-reverse-proxy"/>
-<img src="https://badgen.net/npm/dt/magic-reverse-proxy"/>
-<img src="https://badgen.net/npm/license/magic-reverse-proxy"/>
-<img src="https://badgen.net/npm/types/magic-reverse-proxy"/>
-<img src="https://badgen.net/badge/author/MurylloEx/red?icon=label"/>
-</p>
+[![npm version](https://badgen.net/npm/v/magic-reverse-proxy)](https://www.npmjs.com/package/magic-reverse-proxy)
+[![license](https://badgen.net/npm/license/magic-reverse-proxy)](./LICENSE)
+[![node](https://badgen.net/badge/node/%3E%3D22/green)](https://nodejs.org/)
+[![author](https://badgen.net/badge/author/MurylloEx/red)](https://github.com/MurylloEx)
 
-## Getting started into Magic Reverse Proxy!
-<p align="justify">Magic Reverse Proxy is a proxy that can be used to forward requests to another server by domain name, and have a load balancer, ssl/tls support features.</p>
+TypeScript reverse proxy for Node.js with virtual hosts, WebSocket proxying, Round-Robin load balancing, custom middleware chains, and HTTPS redirect / HSTS support.
 
-## Installation
+Package name on npm: **`magic-reverse-proxy`**.
 
-<p align="center">
-  <img src="https://nodei.co/npm/magic-reverse-proxy.png?downloads=true&downloadRank=true&stars=true"/>
-</p>
+## Requirements
 
-<p align="justify">You must run the following terminal command in same path of your project.<p>
-  
-```
-npm install magic-reverse-proxy --save
+- Node.js **>= 22**
+- TypeScript consumers get full typings out of the box
+
+## Install
+
+```bash
+npm install magic-reverse-proxy
 ```
 
-## How it works?
-
-In this basic sample our main goal is to forward all websocket traffic from port 8080 to port 1234.
-
-### Creating a basic WebSocket server:
+## Quick start
 
 ```typescript
-
-import http from 'http';
-import WebSockets from 'websocket';
 import { createProxy } from 'magic-reverse-proxy';
 
-const server = http.createServer((req, res) => {
-  //Reject useless requests...
-  res.writeHead(403).end();
-});
-
-server.listen(1234, function () {
-  console.log('Destination server is running on port 1234!');
-});
-
-const WebSockServer = new WebSockets.server({
-  httpServer: server,
-  maxReceivedFrameSize: 65536,
-  maxReceivedMessageSize: 65536
-});
-
-WebSockServer.on('request', (request) => {
-  console.log('WebSocket connected over [Client -> localhost:8080 -> localhost:1234]');
-  let sock = request.accept();
-  sock.on('message', (msg) => {
-    //Print in the console the data recepted from client.
-    console.log(msg.utf8Data);
-  })
-});
-
-```
-
-### Creating the Magic Proxy trigger and binding to specific port:
-
-```typescript
-let proxy = createProxy({
-  allow_unknown_host: false, //Drop connections from unknown hosts
-  allow_websockets: true, //Allow websocket to be proxied as well
+const proxy = createProxy({
+  allow_unknown_host: false,
+  allow_websockets: true,
+  enable_hsts: false,
   http: {
-    port: 8080, //Define HTTP proxy to port 80
-    enabled: true, //Enable HTTP proxy
+    port: 8080,
+    enabled: true,
     start_callback: () => {
-      console.log('Magic proxy server is running on port 8080!');
+      console.log('Magic Proxy listening on :8080');
     },
-    middlewares: [] //Stack of middlewares to be loaded into HTTP server
+    middlewares: [],
   },
   proxies: [
     {
-      domain: '*', //Proxy all websocket traffic to ws://localhost:1234
-      timeout: 10000, //Timeout for connection
-      round: 0, //Round-Robin index of destinations to proxy all requests
-      destination: ['http://localhost:1234/'], //Array with destinations (Round-Robin will be used to load balance)
-      sockDestination: ['ws://localhost:1234'] //Array with websocket destinations (Round-Robin will be used to load balance)
-    }
+      domain: 'app.localhost',
+      timeout: 10_000,
+      round: 0,
+      destination: [
+        'http://127.0.0.1:3001/',
+        'http://127.0.0.1:3002/',
+      ],
+      sockDestination: ['ws://127.0.0.1:3001', 'ws://127.0.0.1:3002'],
+    },
   ],
   default_proxy: {
-    timeout: 10000, //Timeout for connection
-    round: 0, //Round-Robin index of destinations to proxy all requests
-    destination: ['http://localhost:1234/'] //Array with destinations (Round-Robin will be used to load balance)
-  }
+    domain: '*',
+    timeout: 10_000,
+    round: 0,
+    destination: ['http://127.0.0.1:3999/'],
+    sockDestination: [],
+  },
 });
 
-//Bind proxy with specified configurations
 proxy.bind();
+
+process.on('SIGINT', () => {
+  proxy.unbind();
+  process.exit(0);
+});
 ```
+
+## Public API
+
+| Export | Description |
+| --- | --- |
+| `createProxy(options?)` | Factory that returns a `ProxyTrigger` |
+| `ProxyTrigger.bind()` | Mount middleware, listen on configured ports, attach WebSocket upgrade handlers |
+| `ProxyTrigger.unbind()` | Close HTTP/HTTPS servers |
+| `ProxyTrigger.app` / `appssl` | Underlying Express applications |
+| `ProxyTrigger.config` | Frozen resolved configuration |
+
+Configuration field names keep the **v2 snake_case** shape (`allow_unknown_host`, `sockDestination`, `enable_hsts`, …) so existing samples remain familiar.
+
+### Options overview
+
+| Option | Default | Meaning |
+| --- | --- | --- |
+| `allow_unknown_host` | `true` | If `false`, Host values that do not match `proxies` are dropped |
+| `allow_websockets` | `false` | Proxy `Upgrade` requests using `sockDestination` |
+| `enable_hsts` | `false` | Redirect HTTP→HTTPS (non-localhost) and send `Strict-Transport-Security` on HTTPS |
+| `http` / `https` | see defaults | Listeners, ports, TLS material, user middlewares |
+| `proxies` | `[]` | Virtual-host routes (`domain` supports `*` wildcards) |
+| `default_proxy` | catch-all `*` | Used when `allow_unknown_host` is `true` and no route matches |
+
+`round` is the **initial** Round-Robin cursor only. Runtime balancer state is not written back into `config`.
+
+## Architecture
+
+```
+src/
+  domain/           Value objects & pure helpers (hostname, wildcard, types)
+  application/      Config resolve/validate, host routing, Round-Robin strategy
+  infrastructure/   http-proxy client, HTTP/HTTPS server binding
+  presentation/     createProxy factory + Express / upgrade middlewares
+  index.ts          Public exports
+```
+
+Patterns used where they clarify responsibilities:
+
+- **Factory** — `createProxy`
+- **Strategy** — Round-Robin `LoadBalancer`
+- **Middleware chain** — ordered Express pipeline (user → policy → proxy)
+- **Immutable config** — resolved `ProxyConfig` is frozen; balancers hold their own cursors
+
+## Breaking changes (v2 → v3)
+
+1. **Node.js >= 22** and a modern TypeScript build (`strict`, declarations, source maps).
+2. **Configuration is immutable** after `createProxy`; `round` is no longer mutated on route objects.
+3. **HTTP and WebSocket** Round-Robin counters are **independent** (v2 shared one `round` field incorrectly across both pools).
+4. **Middlewares are registered before listen** (v2 registered them after `listen`, which was unreliable).
+5. **Invalid config throws** `ConfigValidationError` at construction time.
+6. **`enable_hsts`** still forces HTTPS redirect on the HTTP listener; v3 also sets a real `Strict-Transport-Security` header on HTTPS responses.
+7. Dependency **`wildcard` removed** — matching is built-in.
+
+## Scripts
+
+```bash
+npm test      # vitest
+npm run build # emit dist/
+npm run lint  # typecheck sources + tests
+```
+
+## License
+
+MIT © Muryllo Pimenta de Oliveira

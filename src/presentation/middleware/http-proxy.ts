@@ -1,0 +1,46 @@
+import type { NextFunction, Request, Response } from 'express';
+import type { BalancerRegistry } from '@/application/balancing/round-robin.js';
+import { resolveHostRoute } from '@/application/routing/host-router.js';
+import type { ProxyConfig } from '@/domain/types.js';
+import { sendBadGateway } from '@/infrastructure/proxy/bad-gateway.js';
+import type { ProxyClient } from '@/infrastructure/proxy/http-proxy-client.js';
+
+/**
+ * Terminal Express middleware that reverse-proxies HTTP to the matched upstream.
+ */
+export function createHttpProxyMiddleware(
+  config: ProxyConfig,
+  client: ProxyClient,
+  balancers: BalancerRegistry,
+): (req: Request, res: Response, next: NextFunction) => void {
+  return (req: Request, res: Response, _next: NextFunction): void => {
+    const resolved = resolveHostRoute(config, req);
+
+    if (!resolved) {
+      sendBadGateway(res);
+      return;
+    }
+
+    const target = balancers.pick(
+      resolved.key,
+      'http',
+      resolved.route.destination,
+      resolved.route.round,
+    );
+
+    if (!target) {
+      sendBadGateway(res);
+      return;
+    }
+
+    const replied = { value: false };
+
+    client.web(req, res, target, resolved.route.timeout, () => {
+      if (replied.value) {
+        return;
+      }
+      replied.value = true;
+      sendBadGateway(res);
+    });
+  };
+}
