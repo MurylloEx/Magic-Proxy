@@ -1,4 +1,8 @@
-export { DEFAULT_PROXY_CONFIG, DEFAULT_PROXY_ROUTE } from './config/defaults.js';
+export {
+  DEFAULT_BALANCER_STRATEGY,
+  DEFAULT_PROXY_CONFIG,
+  DEFAULT_ROUTE,
+} from './config/defaults.js';
 export { resolveConfig } from './config/resolve.js';
 export {
   ConfigValidationError,
@@ -7,9 +11,9 @@ export {
 export {
   createBalancerRegistry,
   createRoundRobinBalancer,
+  roundRobin,
   type BalancerRegistry,
   type DestinationKind,
-  type LoadBalancer,
 } from './balancing/round-robin.js';
 export {
   isKnownHost,

@@ -1,31 +1,43 @@
-import type { MagicProxyDefinition, ProxyConfig } from '@/domain/types.js';
+import type {
+  BalancerStrategy,
+  MagicProxyConfig,
+  RouteConfig,
+} from '@/domain/types.js';
+import { createRoundRobinBalancer } from '../balancing/round-robin.js';
 
-export const DEFAULT_PROXY_ROUTE: MagicProxyDefinition = {
-  domain: '*',
-  destination: [],
-  sockDestination: [],
-  timeout: 10_000,
-  round: 0,
+export const DEFAULT_ROUTE: RouteConfig = {
+  host: '*',
+  targets: [],
+  websocketTargets: [],
+  timeoutMs: 10_000,
+  initialIndex: 0,
 };
 
-export const DEFAULT_PROXY_CONFIG: ProxyConfig = {
-  enable_hsts: false,
-  allow_unknown_host: true,
-  allow_websockets: false,
+export const DEFAULT_BALANCER_STRATEGY: BalancerStrategy =
+  createRoundRobinBalancer;
+
+export const DEFAULT_PROXY_CONFIG: MagicProxyConfig = {
   http: {
     port: 80,
     enabled: true,
     middlewares: [],
-    start_callback: () => undefined,
+    onListen: () => undefined,
   },
   https: {
     port: 443,
     enabled: false,
     middlewares: [],
-    start_callback: () => undefined,
-    sslkey: '',
-    sslcert: '',
+    onListen: () => undefined,
+    key: '',
+    cert: '',
   },
-  proxies: [],
-  default_proxy: DEFAULT_PROXY_ROUTE,
+  routes: [],
+  fallback: DEFAULT_ROUTE,
+  policy: {
+    allowUnknownHosts: true,
+    allowWebSockets: false,
+    forceHttpsRedirect: false,
+    hstsMaxAgeSeconds: undefined,
+  },
+  balancerStrategy: DEFAULT_BALANCER_STRATEGY,
 };

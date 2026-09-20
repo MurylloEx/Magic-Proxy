@@ -1,11 +1,15 @@
 export type {
-  MagicHttpConfig,
-  MagicHttpsConfig,
-  MagicProxyDefinition,
-  ProxyConfig,
-  ProxyConfigInput,
+  BalancerStrategy,
+  HostPattern,
+  HttpListenerConfig,
+  HttpsListenerConfig,
+  LoadBalancer,
+  MagicProxyConfig,
+  MagicProxyInstance,
+  MagicProxyOptions,
   ProxyMiddleware,
-  ProxyTrigger,
+  RouteConfig,
+  SecurityPolicy,
 } from './types.js';
 
 export { parseHostname } from './hostname.js';

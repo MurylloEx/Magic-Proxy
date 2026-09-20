@@ -1,7 +1,7 @@
 import http, { type Server as HttpServer } from 'node:http';
 import https, { type Server as HttpsServer } from 'node:https';
 import type { Express } from 'express';
-import type { ProxyConfig } from '@/domain/types.js';
+import type { MagicProxyConfig } from '@/domain/types.js';
 
 export interface BoundServers {
   readonly httpServer: HttpServer | undefined;
@@ -12,31 +12,31 @@ export interface BoundServers {
  * Create and listen on configured HTTP/HTTPS servers.
  * Middleware must already be mounted on the Express apps before calling this.
  */
-export function bindServers(
-  config: ProxyConfig,
-  app: Express,
-  appssl: Express,
+export function startServers(
+  config: MagicProxyConfig,
+  httpApp: Express,
+  httpsApp: Express,
 ): BoundServers {
   const httpServer = config.http.enabled
-    ? http.createServer(app).listen(config.http.port, config.http.start_callback)
+    ? http.createServer(httpApp).listen(config.http.port, config.http.onListen)
     : undefined;
 
   const httpsServer = config.https.enabled
     ? https
         .createServer(
           {
-            key: config.https.sslkey,
-            cert: config.https.sslcert,
+            key: config.https.key,
+            cert: config.https.cert,
           },
-          appssl,
+          httpsApp,
         )
-        .listen(config.https.port, config.https.start_callback)
+        .listen(config.https.port, config.https.onListen)
     : undefined;
 
   return { httpServer, httpsServer };
 }
 
-export function unbindServers(servers: BoundServers): void {
+export function closeServers(servers: BoundServers): void {
   servers.httpServer?.close();
   servers.httpsServer?.close();
 }

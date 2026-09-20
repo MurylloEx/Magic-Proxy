@@ -1,40 +1,36 @@
 import type {
-  MagicProxyDefinition,
-  ProxyConfig,
-  ProxyConfigInput,
+  MagicProxyConfig,
+  MagicProxyOptions,
+  RouteConfig,
 } from '@/domain/types.js';
-import { DEFAULT_PROXY_CONFIG, DEFAULT_PROXY_ROUTE } from './defaults.js';
+import { DEFAULT_PROXY_CONFIG, DEFAULT_ROUTE } from './defaults.js';
 
 function mergeRoute(
-  partial: Partial<MagicProxyDefinition> | undefined,
-  fallback: MagicProxyDefinition,
-): MagicProxyDefinition {
+  partial: Partial<RouteConfig> | undefined,
+  fallback: RouteConfig,
+): RouteConfig {
   return {
-    domain: partial?.domain ?? fallback.domain,
-    round: partial?.round ?? fallback.round,
-    timeout: partial?.timeout ?? fallback.timeout,
-    destination: Object.freeze([
-      ...(partial?.destination ?? fallback.destination),
-    ]),
-    sockDestination: Object.freeze([
-      ...(partial?.sockDestination ?? fallback.sockDestination),
+    host: partial?.host ?? fallback.host,
+    initialIndex: partial?.initialIndex ?? fallback.initialIndex,
+    timeoutMs: partial?.timeoutMs ?? fallback.timeoutMs,
+    targets: Object.freeze([...(partial?.targets ?? fallback.targets)]),
+    websocketTargets: Object.freeze([
+      ...(partial?.websocketTargets ?? fallback.websocketTargets),
     ]),
   };
 }
 
 /**
- * Merge user input with defaults into a frozen {@link ProxyConfig}.
- * Does not mutate the input object.
+ * Merge declarative options with defaults into a frozen {@link MagicProxyConfig}.
  */
-export function resolveConfig(input?: ProxyConfigInput): ProxyConfig {
+export function resolveConfig(input?: MagicProxyOptions): MagicProxyConfig {
   const http = {
     ...DEFAULT_PROXY_CONFIG.http,
     ...input?.http,
     middlewares: Object.freeze([
       ...(input?.http?.middlewares ?? DEFAULT_PROXY_CONFIG.http.middlewares),
     ]),
-    start_callback:
-      input?.http?.start_callback ?? DEFAULT_PROXY_CONFIG.http.start_callback,
+    onListen: input?.http?.onListen ?? DEFAULT_PROXY_CONFIG.http.onListen,
   };
 
   const https = {
@@ -43,28 +39,28 @@ export function resolveConfig(input?: ProxyConfigInput): ProxyConfig {
     middlewares: Object.freeze([
       ...(input?.https?.middlewares ?? DEFAULT_PROXY_CONFIG.https.middlewares),
     ]),
-    start_callback:
-      input?.https?.start_callback ?? DEFAULT_PROXY_CONFIG.https.start_callback,
-    sslkey: input?.https?.sslkey ?? DEFAULT_PROXY_CONFIG.https.sslkey,
-    sslcert: input?.https?.sslcert ?? DEFAULT_PROXY_CONFIG.https.sslcert,
+    onListen: input?.https?.onListen ?? DEFAULT_PROXY_CONFIG.https.onListen,
+    key: input?.https?.key ?? DEFAULT_PROXY_CONFIG.https.key,
+    cert: input?.https?.cert ?? DEFAULT_PROXY_CONFIG.https.cert,
   };
 
-  const proxies = Object.freeze(
-    (input?.proxies ?? []).map((route) =>
-      mergeRoute(route, DEFAULT_PROXY_ROUTE),
-    ),
+  const routes = Object.freeze(
+    (input?.routes ?? []).map((route) => mergeRoute(route, DEFAULT_ROUTE)),
   );
 
-  const config: ProxyConfig = {
-    enable_hsts: input?.enable_hsts ?? DEFAULT_PROXY_CONFIG.enable_hsts,
-    allow_unknown_host:
-      input?.allow_unknown_host ?? DEFAULT_PROXY_CONFIG.allow_unknown_host,
-    allow_websockets:
-      input?.allow_websockets ?? DEFAULT_PROXY_CONFIG.allow_websockets,
+  const policy = {
+    ...DEFAULT_PROXY_CONFIG.policy,
+    ...input?.policy,
+  };
+
+  const config: MagicProxyConfig = {
     http,
     https,
-    proxies,
-    default_proxy: mergeRoute(input?.default_proxy, DEFAULT_PROXY_ROUTE),
+    routes,
+    fallback: mergeRoute(input?.fallback, DEFAULT_ROUTE),
+    policy,
+    balancerStrategy:
+      input?.balancerStrategy ?? DEFAULT_PROXY_CONFIG.balancerStrategy,
   };
 
   return Object.freeze(config);

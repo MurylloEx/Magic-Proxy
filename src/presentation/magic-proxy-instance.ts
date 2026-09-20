@@ -4,22 +4,22 @@ import type { Server as HttpsServer } from 'node:https';
 import {
   applyMiddlewareChain,
   createBalancerRegistry,
-  resolveConfig,
   validateConfig,
 } from '@/application/index.js';
-import type { ProxyConfigInput, ProxyTrigger } from '@/domain/types.js';
+import type { MagicProxyConfig, MagicProxyInstance } from '@/domain/types.js';
 import {
-  bindServers,
+  closeServers,
   createProxyClient,
-  unbindServers,
+  startServers,
   type BoundServers,
 } from '@/infrastructure/index.js';
 import { createBlockUnknownHostsMiddleware } from './middleware/block-unknown-hosts.js';
-import { forceHttpsMiddleware } from './middleware/force-https.js';
+import {
+  createForceHttpsMiddleware,
+  createHstsHeaderMiddleware,
+} from './middleware/force-https.js';
 import { createHttpProxyMiddleware } from './middleware/http-proxy.js';
 import { createWebSocketProxyHandler } from './middleware/websocket-proxy.js';
-
-const HSTS_VALUE = 'max-age=31536000; includeSubDomains';
 
 function asRequestHandlers(
   middlewares: readonly unknown[],
@@ -27,13 +27,8 @@ function asRequestHandlers(
   return middlewares as readonly RequestHandler[];
 }
 
-const attachHstsHeader: RequestHandler = (_req, res, next) => {
-  res.setHeader('Strict-Transport-Security', HSTS_VALUE);
-  next();
-};
-
 function buildListenerPipeline(
-  config: ReturnType<typeof resolveConfig>,
+  config: MagicProxyConfig,
   client: ReturnType<typeof createProxyClient>,
   balancers: ReturnType<typeof createBalancerRegistry>,
   userMiddlewares: readonly unknown[],
@@ -44,29 +39,34 @@ function buildListenerPipeline(
 ): readonly RequestHandler[] {
   return [
     ...asRequestHandlers(userMiddlewares),
-    ...(!config.allow_unknown_host
+    ...(!config.policy.allowUnknownHosts
       ? [createBlockUnknownHostsMiddleware(config)]
       : []),
-    ...(options.forceHttpsRedirect ? [forceHttpsMiddleware] : []),
-    ...(options.attachHstsHeader ? [attachHstsHeader] : []),
+    ...(options.forceHttpsRedirect
+      ? [
+          createForceHttpsMiddleware(config.policy.hstsMaxAgeSeconds),
+        ]
+      : []),
+    ...(options.attachHstsHeader &&
+    config.policy.hstsMaxAgeSeconds !== undefined
+      ? [createHstsHeaderMiddleware(config.policy.hstsMaxAgeSeconds)]
+      : []),
     createHttpProxyMiddleware(config, client, balancers),
   ];
 }
 
 /**
- * Factory: create a Magic Proxy instance from optional configuration.
- *
- * Public surface is intentionally close to v2 (`createProxy` / `bind` / `unbind`)
- * so existing consumers can migrate with minimal changes.
+ * Materialize a validated config into a runnable proxy instance.
  */
-export function createProxy(options?: ProxyConfigInput): ProxyTrigger {
-  const config = resolveConfig(options);
+export function createMagicProxyInstance(
+  config: MagicProxyConfig,
+): MagicProxyInstance {
   validateConfig(config);
 
-  const app = Express();
-  const appssl = Express();
+  const httpApp = Express();
+  const httpsApp = Express();
   const client = createProxyClient();
-  const balancers = createBalancerRegistry();
+  const balancers = createBalancerRegistry(config.balancerStrategy);
 
   const servers: {
     httpServer: HttpServer | undefined;
@@ -78,21 +78,21 @@ export function createProxy(options?: ProxyConfigInput): ProxyTrigger {
 
   const mounted = { value: false };
 
-  const bind = (): void => {
+  const listen = (): void => {
     if (mounted.value) {
       return;
     }
 
     if (config.http.enabled) {
       applyMiddlewareChain(
-        app,
+        httpApp,
         buildListenerPipeline(
           config,
           client,
           balancers,
           config.http.middlewares,
           {
-            forceHttpsRedirect: config.enable_hsts,
+            forceHttpsRedirect: config.policy.forceHttpsRedirect,
             attachHstsHeader: false,
           },
         ),
@@ -101,7 +101,7 @@ export function createProxy(options?: ProxyConfigInput): ProxyTrigger {
 
     if (config.https.enabled) {
       applyMiddlewareChain(
-        appssl,
+        httpsApp,
         buildListenerPipeline(
           config,
           client,
@@ -109,13 +109,13 @@ export function createProxy(options?: ProxyConfigInput): ProxyTrigger {
           config.https.middlewares,
           {
             forceHttpsRedirect: false,
-            attachHstsHeader: config.enable_hsts,
+            attachHstsHeader: true,
           },
         ),
       );
     }
 
-    const bound: BoundServers = bindServers(config, app, appssl);
+    const bound: BoundServers = startServers(config, httpApp, httpsApp);
     servers.httpServer = bound.httpServer;
     servers.httpsServer = bound.httpsServer;
 
@@ -126,8 +126,8 @@ export function createProxy(options?: ProxyConfigInput): ProxyTrigger {
     mounted.value = true;
   };
 
-  const unbind = (): void => {
-    unbindServers({
+  const close = (): void => {
+    closeServers({
       httpServer: servers.httpServer,
       httpsServer: servers.httpsServer,
     });
@@ -138,16 +138,16 @@ export function createProxy(options?: ProxyConfigInput): ProxyTrigger {
   };
 
   return {
-    app,
-    appssl,
     config,
+    httpApp,
+    httpsApp,
     get httpServer() {
       return servers.httpServer;
     },
     get httpsServer() {
       return servers.httpsServer;
     },
-    bind,
-    unbind,
+    listen,
+    close,
   };
 }

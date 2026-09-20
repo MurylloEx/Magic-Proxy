@@ -1,11 +1,15 @@
 export type {
-  MagicHttpConfig,
-  MagicHttpsConfig,
-  MagicProxyDefinition,
-  ProxyConfig,
-  ProxyConfigInput,
+  BalancerStrategy,
+  HostPattern,
+  HttpListenerConfig,
+  HttpsListenerConfig,
+  LoadBalancer,
+  MagicProxyConfig,
+  MagicProxyInstance,
+  MagicProxyOptions,
   ProxyMiddleware,
-  ProxyTrigger,
+  RouteConfig,
+  SecurityPolicy,
 } from '@/domain/index.js';
 
 export {
@@ -19,11 +23,16 @@ export {
   createBalancerRegistry,
   createRoundRobinBalancer,
   DEFAULT_PROXY_CONFIG,
-  DEFAULT_PROXY_ROUTE,
+  DEFAULT_ROUTE,
   isKnownHost,
   resolveConfig,
   resolveHostRoute,
+  roundRobin,
   validateConfig,
 } from '@/application/index.js';
 
-export { createProxy } from '@/presentation/create-proxy.js';
+export {
+  MagicProxy,
+  MagicProxyBuilder,
+  RouteBuilder,
+} from '@/presentation/builder.js';

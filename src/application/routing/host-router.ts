@@ -1,18 +1,18 @@
 import type { IncomingMessage } from 'node:http';
 import { matchDomain, parseHostname } from '@/domain/index.js';
-import type { MagicProxyDefinition, ProxyConfig } from '@/domain/types.js';
+import type { MagicProxyConfig, RouteConfig } from '@/domain/types.js';
 
 export interface ResolvedRoute {
-  readonly route: MagicProxyDefinition;
+  readonly route: RouteConfig;
   readonly key: string;
-  readonly viaDefault: boolean;
+  readonly viaFallback: boolean;
 }
 
 /**
  * Resolve which virtual-host route should handle the request Host header.
  */
 export function resolveHostRoute(
-  config: ProxyConfig,
+  config: MagicProxyConfig,
   req: IncomingMessage,
 ): ResolvedRoute | undefined {
   const hostname = parseHostname(req);
@@ -20,36 +20,36 @@ export function resolveHostRoute(
     return undefined;
   }
 
-  const matchedIndex = config.proxies.findIndex((proxy) =>
-    matchDomain(proxy.domain, hostname),
+  const matchedIndex = config.routes.findIndex((route) =>
+    matchDomain(route.host, hostname),
   );
 
   if (matchedIndex >= 0) {
-    const route = config.proxies[matchedIndex];
+    const route = config.routes[matchedIndex];
     if (!route) {
       return undefined;
     }
     return {
       route,
-      key: `proxies[${matchedIndex}]`,
-      viaDefault: false,
+      key: `routes[${matchedIndex}]`,
+      viaFallback: false,
     };
   }
 
-  if (!config.allow_unknown_host) {
+  if (!config.policy.allowUnknownHosts) {
     return undefined;
   }
 
   return {
-    route: config.default_proxy,
-    key: 'default_proxy',
-    viaDefault: true,
+    route: config.fallback,
+    key: 'fallback',
+    viaFallback: true,
   };
 }
 
 export function isKnownHost(
-  proxies: readonly MagicProxyDefinition[],
+  routes: readonly RouteConfig[],
   hostname: string,
 ): boolean {
-  return proxies.some((proxy) => matchDomain(proxy.domain, hostname));
+  return routes.some((route) => matchDomain(route.host, hostname));
 }

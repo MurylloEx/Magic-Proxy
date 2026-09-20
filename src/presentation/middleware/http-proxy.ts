@@ -1,7 +1,7 @@
 import type { NextFunction, Request, Response } from 'express';
 import type { BalancerRegistry } from '@/application/balancing/round-robin.js';
 import { resolveHostRoute } from '@/application/routing/host-router.js';
-import type { ProxyConfig } from '@/domain/types.js';
+import type { MagicProxyConfig } from '@/domain/types.js';
 import { sendBadGateway } from '@/infrastructure/proxy/bad-gateway.js';
 import type { ProxyClient } from '@/infrastructure/proxy/http-proxy-client.js';
 
@@ -9,7 +9,7 @@ import type { ProxyClient } from '@/infrastructure/proxy/http-proxy-client.js';
  * Terminal Express middleware that reverse-proxies HTTP to the matched upstream.
  */
 export function createHttpProxyMiddleware(
-  config: ProxyConfig,
+  config: MagicProxyConfig,
   client: ProxyClient,
   balancers: BalancerRegistry,
 ): (req: Request, res: Response, next: NextFunction) => void {
@@ -24,8 +24,8 @@ export function createHttpProxyMiddleware(
     const target = balancers.pick(
       resolved.key,
       'http',
-      resolved.route.destination,
-      resolved.route.round,
+      resolved.route.targets,
+      resolved.route.initialIndex,
     );
 
     if (!target) {
@@ -35,7 +35,7 @@ export function createHttpProxyMiddleware(
 
     const replied = { value: false };
 
-    client.web(req, res, target, resolved.route.timeout, () => {
+    client.web(req, res, target, resolved.route.timeoutMs, () => {
       if (replied.value) {
         return;
       }

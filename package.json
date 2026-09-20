@@ -1,7 +1,7 @@
 {
   "name": "magic-reverse-proxy",
-  "version": "3.0.0",
-  "description": "HTTP/HTTPS reverse proxy with virtual hosts, WebSocket support, Round-Robin load balancing, and HSTS-style HTTPS redirect.",
+  "version": "4.0.0",
+  "description": "HTTP/HTTPS reverse proxy with a fluent TypeScript API, virtual hosts, WebSocket support, pluggable Round-Robin balancing, and HSTS policy helpers.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "exports": {

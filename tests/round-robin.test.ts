@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   createBalancerRegistry,
   createRoundRobinBalancer,
+  roundRobin,
 } from '@/application/balancing/round-robin.js';
 
 describe('createRoundRobinBalancer', () => {
@@ -28,7 +29,7 @@ describe('createRoundRobinBalancer', () => {
 
 describe('createBalancerRegistry', () => {
   it('keeps independent cursors for http and websocket', () => {
-    const registry = createBalancerRegistry();
+    const registry = createBalancerRegistry(roundRobin());
     const httpTargets = ['http://a', 'http://b'] as const;
     const wsTargets = ['ws://a', 'ws://b', 'ws://c'] as const;
 
@@ -42,5 +43,14 @@ describe('createBalancerRegistry', () => {
   it('returns undefined when destinations are empty', () => {
     const registry = createBalancerRegistry();
     expect(registry.pick('route', 'http', [], 0)).toBeUndefined();
+  });
+
+  it('accepts a custom strategy', () => {
+    const alwaysLast = (size: number): ReturnType<typeof createRoundRobinBalancer> => ({
+      size,
+      next: () => size - 1,
+    });
+    const registry = createBalancerRegistry(alwaysLast);
+    expect(registry.pick('r', 'http', ['a', 'b', 'c'], 0)).toBe('c');
   });
 });

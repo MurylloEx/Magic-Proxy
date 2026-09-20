@@ -9,67 +9,96 @@ export type ProxyMiddleware = (
   next: (err?: unknown) => void,
 ) => void;
 
-export interface MagicHttpConfig {
+/** Host pattern; supports `*` wildcards (e.g. `*.cdn.example.com`). */
+export type HostPattern = string;
+
+export interface HttpListenerConfig {
   readonly port: number;
   readonly enabled: boolean;
   readonly middlewares: readonly ProxyMiddleware[];
-  readonly start_callback: () => void;
+  readonly onListen: () => void;
 }
 
-export interface MagicHttpsConfig {
+export interface HttpsListenerConfig {
   readonly port: number;
   readonly enabled: boolean;
   readonly middlewares: readonly ProxyMiddleware[];
-  readonly start_callback: () => void;
-  readonly sslkey: string;
-  readonly sslcert: string;
+  readonly onListen: () => void;
+  readonly key: string;
+  readonly cert: string;
 }
 
 /**
- * Virtual-host route definition.
- * `round` is the initial Round-Robin cursor (0-based); runtime state is not mutated on this object.
+ * Virtual-host route.
+ * `initialIndex` seeds the load-balancer cursor; runtime state is not stored here.
  */
-export interface MagicProxyDefinition {
-  readonly domain: string;
-  readonly round: number;
-  readonly timeout: number;
-  readonly destination: readonly string[];
-  readonly sockDestination: readonly string[];
+export interface RouteConfig {
+  readonly host: HostPattern;
+  readonly targets: readonly string[];
+  readonly websocketTargets: readonly string[];
+  readonly timeoutMs: number;
+  readonly initialIndex: number;
 }
 
-export interface ProxyConfig {
+export interface SecurityPolicy {
+  /** When false, Host values that do not match any `routes` entry are dropped. */
+  readonly allowUnknownHosts: boolean;
+  /** When true, WebSocket upgrades are proxied via `websocketTargets`. */
+  readonly allowWebSockets: boolean;
+  /** Redirect plain HTTP to HTTPS (skips localhost). */
+  readonly forceHttpsRedirect: boolean;
   /**
-   * When true on the HTTP listener, redirect non-HTTPS requests to HTTPS
-   * (legacy flag name from v2; also sets Strict-Transport-Security on HTTPS responses).
+   * When set, send `Strict-Transport-Security` on HTTPS responses.
+   * `undefined` means do not attach the header.
    */
-  readonly enable_hsts: boolean;
-  /** When false, connections whose Host does not match any `proxies` entry are dropped. */
-  readonly allow_unknown_host: boolean;
-  /** When true, WebSocket upgrades are proxied via `sockDestination`. */
-  readonly allow_websockets: boolean;
-  readonly http: MagicHttpConfig;
-  readonly https: MagicHttpsConfig;
-  readonly proxies: readonly MagicProxyDefinition[];
-  readonly default_proxy: MagicProxyDefinition;
+  readonly hstsMaxAgeSeconds: number | undefined;
 }
 
-/** Deep-partial input accepted by {@link createProxy}. */
-export type ProxyConfigInput = {
-  readonly enable_hsts?: boolean;
-  readonly allow_unknown_host?: boolean;
-  readonly allow_websockets?: boolean;
-  readonly http?: Partial<MagicHttpConfig>;
-  readonly https?: Partial<MagicHttpsConfig>;
-  readonly proxies?: readonly Partial<MagicProxyDefinition>[];
-  readonly default_proxy?: Partial<MagicProxyDefinition>;
+/**
+ * Creates a {@link LoadBalancer} for a destination pool.
+ * Injected so Round-Robin (default) can be swapped later.
+ */
+export type BalancerStrategy = (
+  size: number,
+  initialIndex: number,
+) => LoadBalancer;
+
+export interface LoadBalancer {
+  readonly next: () => number;
+  readonly size: number;
+}
+
+export interface MagicProxyConfig {
+  readonly http: HttpListenerConfig;
+  readonly https: HttpsListenerConfig;
+  readonly routes: readonly RouteConfig[];
+  readonly fallback: RouteConfig;
+  readonly policy: SecurityPolicy;
+  readonly balancerStrategy: BalancerStrategy;
+}
+
+/** Declarative input accepted by {@link MagicProxy.from}. */
+export type MagicProxyOptions = {
+  readonly http?: Partial<Omit<HttpListenerConfig, 'middlewares'>> & {
+    readonly middlewares?: readonly ProxyMiddleware[];
+  };
+  readonly https?: Partial<Omit<HttpsListenerConfig, 'middlewares'>> & {
+    readonly middlewares?: readonly ProxyMiddleware[];
+  };
+  readonly routes?: readonly Partial<RouteConfig>[];
+  readonly fallback?: Partial<RouteConfig>;
+  readonly policy?: Partial<SecurityPolicy>;
+  readonly balancerStrategy?: BalancerStrategy;
 };
 
-export interface ProxyTrigger {
-  readonly app: Express;
-  readonly appssl: Express;
-  readonly config: ProxyConfig;
+export interface MagicProxyInstance {
+  readonly config: MagicProxyConfig;
+  readonly httpApp: Express;
+  readonly httpsApp: Express;
   readonly httpServer: HttpServer | undefined;
   readonly httpsServer: HttpsServer | undefined;
-  readonly bind: () => void;
-  readonly unbind: () => void;
+  /** Start listeners and attach WebSocket upgrade handlers. */
+  readonly listen: () => void;
+  /** Close listeners and release the proxy client. */
+  readonly close: () => void;
 }

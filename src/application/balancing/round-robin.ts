@@ -1,10 +1,4 @@
-/**
- * Strategy interface for selecting the next upstream index.
- */
-export interface LoadBalancer {
-  readonly next: () => number;
-  readonly size: number;
-}
+import type { BalancerStrategy, LoadBalancer } from '@/domain/types.js';
 
 /**
  * Round-Robin load balancer (Strategy pattern).
@@ -18,8 +12,7 @@ export function createRoundRobinBalancer(
     throw new Error('Round-robin balancer requires a positive size');
   }
 
-  const normalizedInitial =
-    ((initialIndex % size) + size) % size;
+  const normalizedInitial = ((initialIndex % size) + size) % size;
   const cursor = { value: normalizedInitial };
 
   return {
@@ -32,6 +25,11 @@ export function createRoundRobinBalancer(
   };
 }
 
+/** Default strategy factory — convenient for `MagicProxy.create().balancer(roundRobin())`. */
+export function roundRobin(): BalancerStrategy {
+  return createRoundRobinBalancer;
+}
+
 export type DestinationKind = 'http' | 'websocket';
 
 export interface BalancerRegistry {
@@ -39,15 +37,17 @@ export interface BalancerRegistry {
     routeKey: string,
     kind: DestinationKind,
     destinations: readonly string[],
-    initialRound: number,
+    initialIndex: number,
   ) => string | undefined;
 }
 
 /**
- * Lazily creates and caches Round-Robin balancers per route + destination kind.
- * HTTP and WebSocket counters are independent (v3 behaviour).
+ * Lazily creates and caches balancers per route + destination kind.
+ * HTTP and WebSocket counters are independent.
  */
-export function createBalancerRegistry(): BalancerRegistry {
+export function createBalancerRegistry(
+  strategy: BalancerStrategy = createRoundRobinBalancer,
+): BalancerRegistry {
   const balancers = new Map<string, LoadBalancer>();
 
   return {
@@ -55,7 +55,7 @@ export function createBalancerRegistry(): BalancerRegistry {
       routeKey: string,
       kind: DestinationKind,
       destinations: readonly string[],
-      initialRound: number,
+      initialIndex: number,
     ): string | undefined => {
       if (destinations.length === 0) {
         return undefined;
@@ -64,8 +64,7 @@ export function createBalancerRegistry(): BalancerRegistry {
       const cacheKey = `${routeKey}:${kind}`;
       const existing = balancers.get(cacheKey);
       const balancer =
-        existing ??
-        createRoundRobinBalancer(destinations.length, initialRound);
+        existing ?? strategy(destinations.length, initialIndex);
 
       if (!existing) {
         balancers.set(cacheKey, balancer);

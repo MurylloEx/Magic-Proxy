@@ -10,10 +10,10 @@ describe('validateConfig', () => {
     const config = resolveConfig({
       http: { enabled: true, port: 8080 },
       https: { enabled: false },
-      proxies: [
+      routes: [
         {
-          domain: '*',
-          destination: ['http://127.0.0.1:3000'],
+          host: '*',
+          targets: ['http://127.0.0.1:3000'],
         },
       ],
     });
@@ -30,9 +30,9 @@ describe('validateConfig', () => {
   it('requires TLS material when HTTPS is enabled', () => {
     const config = resolveConfig({
       http: { enabled: false },
-      https: { enabled: true, port: 443, sslkey: '', sslcert: '' },
+      https: { enabled: true, port: 443, key: '', cert: '' },
     });
-    expect(() => validateConfig(config)).toThrow(/sslkey/);
+    expect(() => validateConfig(config)).toThrow(/https\.key/);
   });
 
   it('requires at least one listener', () => {
@@ -43,25 +43,25 @@ describe('validateConfig', () => {
     expect(() => validateConfig(config)).toThrow(/at least one/);
   });
 
-  it('rejects negative round values', () => {
+  it('rejects negative initialIndex values', () => {
     const config = resolveConfig({
-      proxies: [{ domain: 'x.com', round: -1, destination: ['http://x'] }],
+      routes: [{ host: 'x.com', initialIndex: -1, targets: ['http://x'] }],
     });
-    expect(() => validateConfig(config)).toThrow(/round/);
+    expect(() => validateConfig(config)).toThrow(/initialIndex/);
   });
 });
 
 describe('resolveConfig', () => {
-  it('freezes merged configuration and applies defaults', () => {
+  it('freezes merged configuration and applies camelCase defaults', () => {
     const config = resolveConfig({
-      allow_websockets: true,
-      proxies: [{ domain: 'app.test', destination: ['http://localhost:1'] }],
+      policy: { allowWebSockets: true },
+      routes: [{ host: 'app.test', targets: ['http://localhost:1'] }],
     });
 
-    expect(config.allow_unknown_host).toBe(true);
-    expect(config.allow_websockets).toBe(true);
+    expect(config.policy.allowUnknownHosts).toBe(true);
+    expect(config.policy.allowWebSockets).toBe(true);
     expect(config.http.port).toBe(80);
-    expect(config.proxies[0]?.sockDestination).toEqual([]);
+    expect(config.routes[0]?.websocketTargets).toEqual([]);
     expect(Object.isFrozen(config)).toBe(true);
   });
 });

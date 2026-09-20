@@ -4,7 +4,7 @@ export {
   type ProxyClient,
 } from './proxy/http-proxy-client.js';
 export {
-  bindServers,
-  unbindServers,
+  closeServers,
+  startServers,
   type BoundServers,
 } from './http/servers.js';

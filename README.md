@@ -5,14 +5,13 @@
 [![node](https://badgen.net/badge/node/%3E%3D22/green)](https://nodejs.org/)
 [![author](https://badgen.net/badge/author/MurylloEx/red)](https://github.com/MurylloEx)
 
-TypeScript reverse proxy for Node.js with virtual hosts, WebSocket proxying, Round-Robin load balancing, custom middleware chains, and HTTPS redirect / HSTS support.
+TypeScript reverse proxy for Node.js with virtual hosts, WebSocket proxying, pluggable load balancing, middleware pipelines, and HTTPS / HSTS policy helpers.
 
 Package name on npm: **`magic-reverse-proxy`**.
 
 ## Requirements
 
 - Node.js **>= 22**
-- TypeScript consumers get full typings out of the box
 
 ## Install
 
@@ -20,111 +19,144 @@ Package name on npm: **`magic-reverse-proxy`**.
 npm install magic-reverse-proxy
 ```
 
-## Quick start
+## Quick start (fluent)
 
 ```typescript
-import { createProxy } from 'magic-reverse-proxy';
+import { MagicProxy, roundRobin } from 'magic-reverse-proxy';
 
-const proxy = createProxy({
-  allow_unknown_host: false,
-  allow_websockets: true,
-  enable_hsts: false,
-  http: {
+const proxy = MagicProxy.create()
+  .http({
     port: 8080,
-    enabled: true,
-    start_callback: () => {
-      console.log('Magic Proxy listening on :8080');
-    },
-    middlewares: [],
-  },
-  proxies: [
-    {
-      domain: 'app.localhost',
-      timeout: 10_000,
-      round: 0,
-      destination: [
-        'http://127.0.0.1:3001/',
-        'http://127.0.0.1:3002/',
-      ],
-      sockDestination: ['ws://127.0.0.1:3001', 'ws://127.0.0.1:3002'],
-    },
-  ],
-  default_proxy: {
-    domain: '*',
-    timeout: 10_000,
-    round: 0,
-    destination: ['http://127.0.0.1:3999/'],
-    sockDestination: [],
-  },
-});
+    onListen: () => console.log('Magic Proxy on :8080'),
+  })
+  .route('app.localhost')
+    .to('http://127.0.0.1:3001', 'http://127.0.0.1:3002')
+    .websockets('ws://127.0.0.1:3001', 'ws://127.0.0.1:3002')
+    .timeout(10_000)
+  .fallback()
+    .to('http://127.0.0.1:3999')
+  .allowUnknownHosts(false)
+  .allowWebSockets(true)
+  .balancer(roundRobin())
+  .build();
 
-proxy.bind();
+proxy.listen();
 
 process.on('SIGINT', () => {
-  proxy.unbind();
+  proxy.close();
   process.exit(0);
 });
 ```
 
-## Public API
+## Declarative alternative
 
-| Export | Description |
+```typescript
+import { MagicProxy } from 'magic-reverse-proxy';
+
+const proxy = MagicProxy.from({
+  http: { port: 8080 },
+  routes: [
+    {
+      host: 'api.localhost',
+      targets: ['http://127.0.0.1:3001'],
+      websocketTargets: ['ws://127.0.0.1:3001'],
+      timeoutMs: 10_000,
+    },
+  ],
+  fallback: { targets: ['http://127.0.0.1:3999'] },
+  policy: {
+    allowUnknownHosts: false,
+    allowWebSockets: true,
+    forceHttpsRedirect: false,
+  },
+});
+
+proxy.listen();
+```
+
+## Public API sketch
+
+| Surface | Role |
 | --- | --- |
-| `createProxy(options?)` | Factory that returns a `ProxyTrigger` |
-| `ProxyTrigger.bind()` | Mount middleware, listen on configured ports, attach WebSocket upgrade handlers |
-| `ProxyTrigger.unbind()` | Close HTTP/HTTPS servers |
-| `ProxyTrigger.app` / `appssl` | Underlying Express applications |
-| `ProxyTrigger.config` | Frozen resolved configuration |
+| `MagicProxy.create()` | Immutable fluent builder |
+| `MagicProxy.from(options)` | Declarative camelCase config |
+| `.route(host).to(...).websockets(...).timeout(ms)` | Virtual-host route |
+| `.fallback().to(...)` | Catch-all when unknown hosts are allowed |
+| `.allowUnknownHosts` / `.allowWebSockets` / `.forceHttps` / `.hsts` | Security policy |
+| `.balancer(roundRobin())` | Inject load-balancer **Strategy** |
+| `.useHttp` / `.useHttps` | Middleware pipeline per listener |
+| `proxy.listen()` / `proxy.close()` | Lifecycle |
+| `proxy.httpApp` / `proxy.httpsApp` | Underlying Express apps |
 
-Configuration field names keep the **v2 snake_case** shape (`allow_unknown_host`, `sockDestination`, `enable_hsts`, …) so existing samples remain familiar.
-
-### Options overview
-
-| Option | Default | Meaning |
-| --- | --- | --- |
-| `allow_unknown_host` | `true` | If `false`, Host values that do not match `proxies` are dropped |
-| `allow_websockets` | `false` | Proxy `Upgrade` requests using `sockDestination` |
-| `enable_hsts` | `false` | Redirect HTTP→HTTPS (non-localhost) and send `Strict-Transport-Security` on HTTPS |
-| `http` / `https` | see defaults | Listeners, ports, TLS material, user middlewares |
-| `proxies` | `[]` | Virtual-host routes (`domain` supports `*` wildcards) |
-| `default_proxy` | catch-all `*` | Used when `allow_unknown_host` is `true` and no route matches |
-
-`round` is the **initial** Round-Robin cursor only. Runtime balancer state is not written back into `config`.
+Resolved `proxy.config` is **frozen**. Balancer cursors live outside the config object.
 
 ## Architecture
 
 ```
 src/
-  domain/           Value objects & pure helpers (hostname, wildcard, types)
-  application/      Config resolve/validate, host routing, Round-Robin strategy
+  domain/           Types, hostname parsing, wildcard matching
+  application/      Config resolve/validate, routing, balancer strategies
   infrastructure/   http-proxy client, HTTP/HTTPS server binding
-  presentation/     createProxy factory + Express / upgrade middlewares
-  index.ts          Public exports
+  presentation/     MagicProxy builder + Express / upgrade middlewares
 ```
 
-Patterns used where they clarify responsibilities:
+## Migration from v3 (snake_case / `createProxy`)
 
-- **Factory** — `createProxy`
-- **Strategy** — Round-Robin `LoadBalancer`
-- **Middleware chain** — ordered Express pipeline (user → policy → proxy)
-- **Immutable config** — resolved `ProxyConfig` is frozen; balancers hold their own cursors
+v4 replaces the v3 surface. Map fields as follows:
 
-## Breaking changes (v2 → v3)
+| v3 | v4 |
+| --- | --- |
+| `createProxy({...})` | `MagicProxy.from({...})` or `MagicProxy.create()...build()` |
+| `bind()` / `unbind()` | `listen()` / `close()` |
+| `app` / `appssl` | `httpApp` / `httpsApp` |
+| `allow_unknown_host` | `policy.allowUnknownHosts` |
+| `allow_websockets` | `policy.allowWebSockets` |
+| `enable_hsts` | `policy.forceHttpsRedirect` + `policy.hstsMaxAgeSeconds` (or `.forceHttps()` / `.hsts()`) |
+| `http.start_callback` | `http.onListen` |
+| `https.sslkey` / `sslcert` | `https.key` / `https.cert` |
+| `proxies[].domain` | `routes[].host` |
+| `proxies[].destination` | `routes[].targets` |
+| `proxies[].sockDestination` | `routes[].websocketTargets` |
+| `proxies[].timeout` | `routes[].timeoutMs` |
+| `proxies[].round` | `routes[].initialIndex` |
+| `default_proxy` | `fallback` |
 
-1. **Node.js >= 22** and a modern TypeScript build (`strict`, declarations, source maps).
-2. **Configuration is immutable** after `createProxy`; `round` is no longer mutated on route objects.
-3. **HTTP and WebSocket** Round-Robin counters are **independent** (v2 shared one `round` field incorrectly across both pools).
-4. **Middlewares are registered before listen** (v2 registered them after `listen`, which was unreliable).
-5. **Invalid config throws** `ConfigValidationError` at construction time.
-6. **`enable_hsts`** still forces HTTPS redirect on the HTTP listener; v3 also sets a real `Strict-Transport-Security` header on HTTPS responses.
-7. Dependency **`wildcard` removed** — matching is built-in.
+Example v3 → v4:
+
+```typescript
+// v3
+createProxy({
+  allow_unknown_host: false,
+  allow_websockets: true,
+  http: { port: 8080, enabled: true, start_callback: () => {} },
+  proxies: [{
+    domain: 'app.localhost',
+    destination: ['http://127.0.0.1:3001'],
+    sockDestination: ['ws://127.0.0.1:3001'],
+    timeout: 10_000,
+    round: 0,
+  }],
+}).bind();
+
+// v4
+MagicProxy.create()
+  .http({ port: 8080 })
+  .route('app.localhost')
+    .to('http://127.0.0.1:3001')
+    .websockets('ws://127.0.0.1:3001')
+    .timeout(10_000)
+  .allowUnknownHosts(false)
+  .allowWebSockets(true)
+  .build()
+  .listen();
+```
 
 ## Scripts
 
 ```bash
-npm test      # vitest
-npm run build # emit dist/
-npm run lint  # typecheck sources + tests
+npm test
+npm run build
+npm run lint
 ```
 
 ## License
